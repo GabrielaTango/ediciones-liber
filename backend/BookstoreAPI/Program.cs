@@ -61,6 +61,7 @@ builder.Services.AddScoped<IComprobantePdfService, ComprobantePdfService>();
 builder.Services.AddScoped<ICuotaPdfService, CuotaPdfService>();
 builder.Services.AddScoped<IIvaVentasPdfService, IvaVentasPdfService>();
 builder.Services.AddScoped<IRemitoPdfService, RemitoPdfService>();
+builder.Services.AddScoped<IArticulosVendidosZonaPdfService, ArticulosVendidosZonaPdfService>();
 
 var app = builder.Build();
 

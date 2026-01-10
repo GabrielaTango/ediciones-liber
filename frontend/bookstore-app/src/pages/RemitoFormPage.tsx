@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import Select from 'react-select';
 import { remitoService } from '../services/remitoService';
 import { clienteService } from '../services/clienteService';
 import { referenceService } from '../services/referenceService';
@@ -8,6 +9,11 @@ import type { Cliente } from '../types/cliente';
 import type { Transporte, SubZona, Provincia } from '../types/references';
 import { PageHeader } from '../components/PageHeader';
 import { GradientButton } from '../components/GradientButton';
+
+interface SelectOption {
+  value: number;
+  label: string;
+}
 
 const RemitoFormPage = () => {
   const navigate = useNavigate();
@@ -36,6 +42,23 @@ const RemitoFormPage = () => {
     localidad: string;
     provincia: string;
   } | null>(null);
+
+  // Estado para React Select
+  const [selectedCliente, setSelectedCliente] = useState<SelectOption | null>(null);
+  const [selectedTransporte, setSelectedTransporte] = useState<SelectOption | null>(null);
+
+  // Opciones para React Select
+  const clienteOptions = useMemo<SelectOption[]>(() =>
+    clientes.map(c => ({
+      value: c.id,
+      label: `${c.codigo || ''} - ${c.nombre}`
+    })), [clientes]);
+
+  const transporteOptions = useMemo<SelectOption[]>(() =>
+    transportes.map(t => ({
+      value: t.id,
+      label: t.codigo ? `${t.codigo} - ${t.nombre}` : t.nombre
+    })), [transportes]);
 
   useEffect(() => {
     loadInitialData();
@@ -87,6 +110,16 @@ const RemitoFormPage = () => {
         localidad: remito.clienteLocalidad || '',
         provincia: remito.clienteProvincia || '',
       });
+
+      // Establecer valores de React Select
+      if (remito.clienteId) {
+        const clienteLabel = remito.clienteNombre || `Cliente ${remito.clienteId}`;
+        setSelectedCliente({ value: remito.clienteId, label: clienteLabel });
+      }
+      if (remito.transporteId) {
+        const transporteLabel = remito.transporteNombre || `Transporte ${remito.transporteId}`;
+        setSelectedTransporte({ value: remito.transporteId, label: transporteLabel });
+      }
     } catch (err) {
       setError('Error al cargar el remito');
       console.error('Error loading remito:', err);
@@ -95,7 +128,10 @@ const RemitoFormPage = () => {
     }
   };
 
-  const handleClienteChange = (clienteId: number) => {
+  const handleClienteSelectChange = (option: SelectOption | null) => {
+    setSelectedCliente(option);
+    const clienteId = option?.value || 0;
+
     const cliente = clientes.find((c) => c.id === clienteId);
 
     if (cliente) {
@@ -116,14 +152,18 @@ const RemitoFormPage = () => {
     setFormData((prev) => ({ ...prev, clienteId }));
   };
 
+  const handleTransporteSelectChange = (option: SelectOption | null) => {
+    setSelectedTransporte(option);
+    const transporteId = option?.value || 0;
+    setFormData((prev) => ({ ...prev, transporteId }));
+  };
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
 
-    if (name === 'clienteId') {
-      handleClienteChange(parseInt(value, 10) || 0);
-    } else if (name === 'transporteId' || name === 'cantidadBultos') {
+    if (name === 'cantidadBultos') {
       setFormData((prev) => ({ ...prev, [name]: parseInt(value, 10) || 0 }));
     } else if (name === 'valorDeclarado') {
       setFormData((prev) => ({ ...prev, [name]: parseFloat(value) || 0 }));
@@ -197,20 +237,13 @@ const RemitoFormPage = () => {
                 <label className="form-label">
                   Cliente <span className="text-danger">*</span>
                 </label>
-                <select
-                  className="form-select"
-                  name="clienteId"
-                  value={formData.clienteId || ''}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Seleccione un cliente</option>
-                  {clientes.map((cliente) => (
-                    <option key={cliente.id} value={cliente.id}>
-                      {cliente.codigo} - {cliente.nombre}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  isClearable
+                  placeholder="Buscar cliente..."
+                  options={clienteOptions}
+                  value={selectedCliente}
+                  onChange={handleClienteSelectChange}
+                />
               </div>
               <div className="col-md-6 mb-3">
                 <label className="form-label">Domicilio</label>
@@ -261,20 +294,13 @@ const RemitoFormPage = () => {
                 <label className="form-label">
                   Transporte <span className="text-danger">*</span>
                 </label>
-                <select
-                  className="form-select"
-                  name="transporteId"
-                  value={formData.transporteId || ''}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Seleccione un transporte</option>
-                  {transportes.map((transporte) => (
-                    <option key={transporte.id} value={transporte.id}>
-                      {transporte.codigo ? `${transporte.codigo} - ` : ''}{transporte.nombre}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  isClearable
+                  placeholder="Buscar transporte..."
+                  options={transporteOptions}
+                  value={selectedTransporte}
+                  onChange={handleTransporteSelectChange}
+                />
               </div>
             </div>
           </div>
@@ -299,6 +325,7 @@ const RemitoFormPage = () => {
                   name="cantidadBultos"
                   value={formData.cantidadBultos}
                   onChange={handleChange}
+                  onFocus={(e) => e.target.select()}
                   min="1"
                   required
                 />
@@ -318,6 +345,7 @@ const RemitoFormPage = () => {
                     name="valorDeclarado"
                     value={formData.valorDeclarado}
                     onChange={handleChange}
+                    onFocus={(e) => e.target.select()}
                     min="0.01"
                     step="0.01"
                     required

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { referenceService } from '../services/referenceService';
 import type { Provincia, CreateProvinciaDto, UpdateProvinciaDto } from '../types/references';
 import { PageHeader } from '../components/PageHeader';
@@ -9,6 +9,16 @@ const ProvinciasPage = () => {
   const [provincias, setProvincias] = useState<Provincia[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filtro, setFiltro] = useState('');
+
+  const provinciasFiltradas = useMemo(() => {
+    if (!filtro.trim()) return provincias;
+    const busqueda = filtro.toLowerCase();
+    return provincias.filter(p =>
+      (p.codigo?.toLowerCase() || '').includes(busqueda) ||
+      (p.descripcion?.toLowerCase() || '').includes(busqueda)
+    );
+  }, [provincias, filtro]);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [provinciaToDelete, setProvinciaToDelete] = useState<Provincia | null>(null);
@@ -115,6 +125,23 @@ const ProvinciasPage = () => {
 
       {error && <div className="alert alert-danger">{error}</div>}
 
+      {/* Filtro */}
+      <div className="card mb-3">
+        <div className="card-body py-2">
+          <div className="row">
+            <div className="col-md-4">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Buscar por código o descripción..."
+                value={filtro}
+                onChange={(e) => setFiltro(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {loading ? (
         <div className="text-center py-5">
           <div className="spinner-gradient" />
@@ -132,7 +159,7 @@ const ProvinciasPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {provincias.map((provincia) => (
+                  {provinciasFiltradas.map((provincia) => (
                     <tr key={provincia.id}>
                       <td>{provincia.codigo || '-'}</td>
                       <td>{provincia.descripcion || '-'}</td>

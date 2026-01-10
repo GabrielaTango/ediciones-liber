@@ -196,6 +196,7 @@ const ArticuloFormPage = () => {
                   name="tomos"
                   value={formData.tomos || ''}
                   onChange={handleChange}
+                  onFocus={(e) => e.target.select()}
                   placeholder="Número de tomos"
                   min="0"
                 />
@@ -215,6 +216,7 @@ const ArticuloFormPage = () => {
                     name="precio"
                     value={formData.precio || ''}
                     onChange={handleChange}
+                    onFocus={(e) => e.target.select()}
                     placeholder="0.00"
                     min="0"
                     step="0.01"

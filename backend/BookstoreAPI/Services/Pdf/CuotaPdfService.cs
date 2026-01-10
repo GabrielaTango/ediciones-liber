@@ -78,11 +78,19 @@ namespace BookstoreAPI.Services.Pdf
 
                 // Resumen de cuotas
                 var anticipo = comprobante.Anticipo ?? 0;
-                var primerCuota = cuotas.FirstOrDefault();
-                var montoCuota = primerCuota?.Importe ?? 0;
+                var cuotaCero = cuotas.FirstOrDefault(c => c.NumeroCuota == 0);
+                var cuotasRegulares = cuotas.Where(c => c.NumeroCuota > 0).ToList();
+                var montoCuotaRegular = cuotasRegulares.FirstOrDefault()?.Importe ?? 0;
+                var montoContraEntrega = cuotaCero?.Importe ?? 0;
+
+                var resumenTexto = $"Anticipo: ${anticipo:N2}";
+                if (montoContraEntrega > 0)
+                    resumenTexto += $" - C.Entrega: ${montoContraEntrega:N2}";
+                if (cuotasRegulares.Count > 0)
+                    resumenTexto += $" - {cuotasRegulares.Count} Cuotas de ${montoCuotaRegular:N2}";
 
                 column.Item().Border(1).Padding(5)
-                    .Text($"Anticipo: ${anticipo:N2} - {cuotas.Count} Cuotas de ${montoCuota:N2}")
+                    .Text(resumenTexto)
                     .FontSize(12).Bold().AlignCenter();
             });
         }
@@ -100,17 +108,18 @@ namespace BookstoreAPI.Services.Pdf
                     columns.RelativeColumn();
                 });
 
-                int numeroCuota = 1;
-                foreach (var cuota in cuotas)
+                foreach (var cuota in cuotas.OrderBy(c => c.NumeroCuota))
                 {
-                    RenderCuponCell(table, cliente, comprobante, cuota, numeroCuota);
-                    numeroCuota++;
+                    RenderCuponCell(table, cliente, comprobante, cuota);
                 }
             });
         }
 
-        private void RenderCuponCell(TableDescriptor table, Cliente cliente, Comprobante comprobante, Cuota cuota, int numeroCuota)
+        private void RenderCuponCell(TableDescriptor table, Cliente cliente, Comprobante comprobante, Cuota cuota)
         {
+            // Determinar etiqueta: "CE" para cuota 0 (contraentrega), número para el resto
+            var etiquetaCuota = cuota.NumeroCuota == 0 ? "CE" : cuota.NumeroCuota.ToString();
+
             table.Cell().Padding(5).Element(container =>
             {
                 container.Border(1).Padding(5).Column(c =>
@@ -139,7 +148,7 @@ namespace BookstoreAPI.Services.Pdf
                         row.RelativeItem(30).Column(col =>
                         {
                             col.Item().AlignRight().Padding(4)
-                                .Text($"{numeroCuota}").FontSize(16).Bold();
+                                .Text(etiquetaCuota).FontSize(16).Bold();
                         });
                     });
 

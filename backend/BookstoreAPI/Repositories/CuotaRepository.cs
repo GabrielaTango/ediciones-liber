@@ -21,13 +21,14 @@ namespace BookstoreAPI.Repositories
                 SELECT
                     id AS Id,
                     comprobante_id AS Comprobante_Id,
+                    numero_cuota AS NumeroCuota,
                     fecha AS Fecha,
                     importe AS Importe,
                     importe_pagado AS ImportePagado,
                     estado AS Estado
                 FROM cuotas
                 WHERE comprobante_id = @ComprobanteId
-                ORDER BY fecha";
+                ORDER BY numero_cuota";
 
             using var connection = _context.CreateConnection();
             var cuotas = await connection.QueryAsync<Cuota>(query, new { ComprobanteId = comprobanteId });
@@ -38,9 +39,9 @@ namespace BookstoreAPI.Repositories
         {
             const string query = @"
                 INSERT INTO cuotas
-                (comprobante_id, fecha, importe, estado)
+                (comprobante_id, numero_cuota, fecha, importe, estado)
                 VALUES
-                (@Comprobante_Id, @Fecha, @Importe, @Estado)";
+                (@Comprobante_Id, @NumeroCuota, @Fecha, @Importe, @Estado)";
 
             foreach (var cuota in cuotas)
             {
@@ -55,9 +56,15 @@ namespace BookstoreAPI.Repositories
             await connection.ExecuteAsync(query, new { ComprobanteId = comprobanteId }, transaction);
         }
 
-        public async Task<IEnumerable<CuotaListadoDto>> GetCuotasByZonaAsync(int? zonaId)
+        public async Task DeleteByComprobanteIdAsync(int comprobanteId)
         {
-            // Query para cuotas normales + cuota cero (contra entrega)
+            const string query = "DELETE FROM cuotas WHERE comprobante_id = @ComprobanteId";
+            using var connection = _context.CreateConnection();
+            await connection.ExecuteAsync(query, new { ComprobanteId = comprobanteId });
+        }
+
+        public async Task<IEnumerable<CuotaListadoDto>> GetCuotasByFiltrosAsync(int? zonaId, int? mes, int? anio)
+        {
             var query = @"
                 SELECT
                     cu.id AS Id,
@@ -72,7 +79,7 @@ namespace BookstoreAPI.Repositories
                     COALESCE(cu.importe, 0) AS Importe,
                     COALESCE(cu.importe_pagado, 0) AS ImportePagado,
                     cu.estado AS Estado,
-                    0 AS EsCuotaCero
+                    cu.numero_cuota AS NumeroCuota
                 FROM cuotas cu
                 INNER JOIN comprobantes c ON cu.comprobante_id = c.id
                 INNER JOIN clientes cl ON c.cliente_id = cl.Id
@@ -84,37 +91,20 @@ namespace BookstoreAPI.Repositories
                 query += " AND z.id = @ZonaId";
             }
 
-            // Agregar cuota cero (contra entrega) de comprobantes que tengan ContraEntrega > 0
-            query += @"
-                UNION ALL
-                SELECT
-                    c.id * -1 AS Id,
-                    c.id AS ComprobanteId,
-                    c.numeroComprobante AS NumeroComprobante,
-                    c.fecha AS FechaComprobante,
-                    cl.Id AS ClienteId,
-                    cl.Nombre AS ClienteNombre,
-                    z.id AS ZonaId,
-                    z.descripcion AS ZonaNombre,
-                    c.fecha AS FechaCuota,
-                    COALESCE(c.ContraEntrega, 0) AS Importe,
-                    COALESCE(c.ContraEntregaPagado, 0) AS ImportePagado,
-                    CASE WHEN COALESCE(c.ContraEntregaPagado, 0) >= COALESCE(c.ContraEntrega, 0) THEN 'PAG' ELSE 'PEN' END AS Estado,
-                    1 AS EsCuotaCero
-                FROM comprobantes c
-                INNER JOIN clientes cl ON c.cliente_id = cl.Id
-                LEFT JOIN zonas z ON cl.Zona_Id = z.id
-                WHERE COALESCE(c.ContraEntrega, 0) > 0";
-
-            if (zonaId.HasValue)
+            if (mes.HasValue)
             {
-                query += " AND z.id = @ZonaId";
+                query += " AND MONTH(cu.fecha) = @Mes";
             }
 
-            query += " ORDER BY FechaCuota, ClienteNombre, EsCuotaCero, Id";
+            if (anio.HasValue)
+            {
+                query += " AND YEAR(cu.fecha) = @Anio";
+            }
+
+            query += " ORDER BY FechaCuota, ClienteNombre, cu.numero_cuota, cu.id";
 
             using var connection = _context.CreateConnection();
-            var cuotas = await connection.QueryAsync<CuotaListadoDto>(query, new { ZonaId = zonaId });
+            var cuotas = await connection.QueryAsync<CuotaListadoDto>(query, new { ZonaId = zonaId, Mes = mes, Anio = anio });
             return cuotas;
         }
 
@@ -131,16 +121,5 @@ namespace BookstoreAPI.Repositories
             return rowsAffected > 0;
         }
 
-        public async Task<bool> UpdateContraEntregaPagadoAsync(int comprobanteId, decimal importePagado)
-        {
-            const string query = @"
-                UPDATE comprobantes
-                SET ContraEntregaPagado = @ImportePagado
-                WHERE id = @ComprobanteId";
-
-            using var connection = _context.CreateConnection();
-            var rowsAffected = await connection.ExecuteAsync(query, new { ComprobanteId = comprobanteId, ImportePagado = importePagado });
-            return rowsAffected > 0;
-        }
     }
 }

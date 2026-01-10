@@ -18,11 +18,11 @@ namespace BookstoreAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetCuotas([FromQuery] int? zonaId)
+        public async Task<IActionResult> GetCuotas([FromQuery] int? zonaId, [FromQuery] int? mes, [FromQuery] int? anio)
         {
             try
             {
-                var cuotas = await _cuotaRepository.GetCuotasByZonaAsync(zonaId);
+                var cuotas = await _cuotaRepository.GetCuotasByFiltrosAsync(zonaId, mes, anio);
                 return Ok(cuotas);
             }
             catch (Exception ex)
@@ -37,18 +37,8 @@ namespace BookstoreAPI.Controllers
         {
             try
             {
-                bool updated;
-
-                if (dto.EsCuotaCero && dto.ComprobanteId.HasValue)
-                {
-                    // Es cuota cero (contra entrega) - actualizar en comprobantes
-                    updated = await _cuotaRepository.UpdateContraEntregaPagadoAsync(dto.ComprobanteId.Value, dto.ImportePagado);
-                }
-                else
-                {
-                    // Es cuota normal - actualizar en cuotas
-                    updated = await _cuotaRepository.UpdateImportePagadoAsync(id, dto.ImportePagado);
-                }
+                // Todas las cuotas (incluyendo cuota 0/contraentrega) están en la tabla cuotas
+                var updated = await _cuotaRepository.UpdateImportePagadoAsync(id, dto.ImportePagado);
 
                 if (!updated)
                     return NotFound(new { message = $"Cuota con ID {id} no encontrada" });

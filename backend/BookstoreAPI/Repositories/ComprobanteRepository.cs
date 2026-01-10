@@ -37,14 +37,106 @@ namespace BookstoreAPI.Repositories
                     c.Cuotas,
                     c.ValorCuota,
                     c.vendedor_id AS Vendedor_Id,
-                    v.descripcion AS VendedorNombre
+                    v.descripcion AS VendedorNombre,
+                    c.GastosEnvio,
+                    c.EsElectronica,
+                    c.EsPresupuesto,
+                    c.comprobante_asociado_id AS ComprobanteAsociado_Id,
+                    ca.numeroComprobante AS ComprobanteAsociadoNumero,
+                    CASE WHEN nc.id IS NOT NULL THEN 1 ELSE 0 END AS EstaCancelado,
+                    nc.numeroComprobante AS NotaCreditoNumero
                 FROM comprobantes c
                 INNER JOIN clientes cl ON c.cliente_id = cl.Id
                 LEFT JOIN vendedores v ON c.vendedor_id = v.id
+                LEFT JOIN comprobantes ca ON c.comprobante_asociado_id = ca.id
+                LEFT JOIN comprobantes nc ON nc.comprobante_asociado_id = c.id AND nc.tipoComprobante = 'NC'
                 ORDER BY c.fecha DESC, c.id DESC";
 
             using var connection = _context.CreateConnection();
             var comprobantes = await connection.QueryAsync<ComprobanteConDetallesDto>(query);
+
+            // Cargar detalles para cada comprobante
+            foreach (var comprobante in comprobantes)
+            {
+                comprobante.Detalles = (await GetDetallesByComprobanteIdAsync(comprobante.Id, connection)).ToList();
+            }
+
+            return comprobantes;
+        }
+
+        public async Task<IEnumerable<ComprobanteConDetallesDto>> GetAllFilteredAsync(
+            int? zonaId, int? clienteId, string? tipoComprobante, DateTime? fechaDesde, DateTime? fechaHasta)
+        {
+            var query = @"
+                SELECT
+                    c.id AS Id,
+                    c.cliente_id AS Cliente_Id,
+                    cl.Nombre AS ClienteNombre,
+                    c.fecha AS Fecha,
+                    c.tipoComprobante AS TipoComprobante,
+                    c.numeroComprobante AS NumeroComprobante,
+                    c.total AS Total,
+                    c.CAE,
+                    c.VTO,
+                    c.Bonificacion,
+                    c.PorcentajeBonif,
+                    c.Anticipo,
+                    c.ContraEntrega,
+                    c.Cuotas,
+                    c.ValorCuota,
+                    c.vendedor_id AS Vendedor_Id,
+                    v.descripcion AS VendedorNombre,
+                    c.GastosEnvio,
+                    c.EsElectronica,
+                    c.EsPresupuesto,
+                    c.comprobante_asociado_id AS ComprobanteAsociado_Id,
+                    ca.numeroComprobante AS ComprobanteAsociadoNumero,
+                    CASE WHEN nc_check.id IS NOT NULL THEN 1 ELSE 0 END AS EstaCancelado,
+                    nc_check.numeroComprobante AS NotaCreditoNumero
+                FROM comprobantes c
+                INNER JOIN clientes cl ON c.cliente_id = cl.Id
+                LEFT JOIN vendedores v ON c.vendedor_id = v.id
+                LEFT JOIN zonas z ON cl.Zona_Id = z.id
+                LEFT JOIN comprobantes ca ON c.comprobante_asociado_id = ca.id
+                LEFT JOIN comprobantes nc_check ON nc_check.comprobante_asociado_id = c.id AND nc_check.tipoComprobante = 'NC'
+                WHERE 1=1";
+
+            var parameters = new DynamicParameters();
+
+            if (zonaId.HasValue)
+            {
+                query += " AND z.id = @ZonaId";
+                parameters.Add("ZonaId", zonaId.Value);
+            }
+
+            if (clienteId.HasValue)
+            {
+                query += " AND c.cliente_id = @ClienteId";
+                parameters.Add("ClienteId", clienteId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(tipoComprobante))
+            {
+                query += " AND c.tipoComprobante = @TipoComprobante";
+                parameters.Add("TipoComprobante", tipoComprobante);
+            }
+
+            if (fechaDesde.HasValue)
+            {
+                query += " AND DATE(c.fecha) >= @FechaDesde";
+                parameters.Add("FechaDesde", fechaDesde.Value.Date);
+            }
+
+            if (fechaHasta.HasValue)
+            {
+                query += " AND DATE(c.fecha) <= @FechaHasta";
+                parameters.Add("FechaHasta", fechaHasta.Value.Date);
+            }
+
+            query += " ORDER BY c.fecha DESC, c.id DESC";
+
+            using var connection = _context.CreateConnection();
+            var comprobantes = await connection.QueryAsync<ComprobanteConDetallesDto>(query, parameters);
 
             // Cargar detalles para cada comprobante
             foreach (var comprobante in comprobantes)
@@ -75,10 +167,19 @@ namespace BookstoreAPI.Repositories
                     c.Cuotas,
                     c.ValorCuota,
                     c.vendedor_id AS Vendedor_Id,
-                    v.descripcion AS VendedorNombre
+                    v.descripcion AS VendedorNombre,
+                    c.GastosEnvio,
+                    c.EsElectronica,
+                    c.EsPresupuesto,
+                    c.comprobante_asociado_id AS ComprobanteAsociado_Id,
+                    ca.numeroComprobante AS ComprobanteAsociadoNumero,
+                    CASE WHEN nc.id IS NOT NULL THEN 1 ELSE 0 END AS EstaCancelado,
+                    nc.numeroComprobante AS NotaCreditoNumero
                 FROM comprobantes c
                 INNER JOIN clientes cl ON c.cliente_id = cl.Id
                 LEFT JOIN vendedores v ON c.vendedor_id = v.id
+                LEFT JOIN comprobantes ca ON c.comprobante_asociado_id = ca.id
+                LEFT JOIN comprobantes nc ON nc.comprobante_asociado_id = c.id AND nc.tipoComprobante = 'NC'
                 WHERE c.id = @Id";
 
             using var connection = _context.CreateConnection();
@@ -110,7 +211,10 @@ namespace BookstoreAPI.Repositories
                     ContraEntrega,
                     Cuotas,
                     ValorCuota,
-                    vendedor_id AS Vendedor_Id
+                    vendedor_id AS Vendedor_Id,
+                    GastosEnvio,
+                    EsElectronica,
+                    EsPresupuesto
                 FROM comprobantes
                 WHERE id = @Id";
 
@@ -142,10 +246,12 @@ namespace BookstoreAPI.Repositories
             const string comprobanteQuery = @"
                 INSERT INTO comprobantes
                 (cliente_id, fecha, tipoComprobante, numeroComprobante, total, CAE, VTO,
-                 Bonificacion, PorcentajeBonif, Anticipo, ContraEntrega, Cuotas, ValorCuota, vendedor_id)
+                 Bonificacion, PorcentajeBonif, Anticipo, ContraEntrega, Cuotas, ValorCuota, vendedor_id, GastosEnvio,
+                 EsElectronica, EsPresupuesto, comprobante_asociado_id)
                 VALUES
                 (@Cliente_Id, @Fecha, @TipoComprobante, @NumeroComprobante, @Total, @CAE, @VTO,
-                 @Bonificacion, @PorcentajeBonif, @Anticipo, @ContraEntrega, @Cuotas, @ValorCuota, @Vendedor_Id);
+                 @Bonificacion, @PorcentajeBonif, @Anticipo, @ContraEntrega, @Cuotas, @ValorCuota, @Vendedor_Id, @GastosEnvio,
+                 @EsElectronica, @EsPresupuesto, @ComprobanteAsociado_Id);
                 SELECT LAST_INSERT_ID();";
 
             const string detalleQuery = @"
@@ -169,8 +275,10 @@ namespace BookstoreAPI.Repositories
                     await connection.ExecuteAsync(detalleQuery, detalle, transaction);
                 }
 
-                // Guardar cuotas si hay cuotas definidas (dentro de la transacción)
-                if (comprobante.Cuotas > 0 && comprobante.ValorCuota > 0)
+                // Guardar cuotas si hay cuotas definidas o contraentrega (dentro de la transacción)
+                var tieneCuotas = comprobante.Cuotas > 0 && comprobante.ValorCuota > 0;
+                var tieneContraEntrega = comprobante.ContraEntrega.HasValue && comprobante.ContraEntrega.Value > 0;
+                if (tieneCuotas || tieneContraEntrega)
                 {
                     var cuotas = GenerarCuotas(comprobante);
                     await _cuotaRepository.CreateCuotasAsync(id, cuotas, connection, transaction);
@@ -191,11 +299,26 @@ namespace BookstoreAPI.Repositories
             var cuotas = new List<Cuota>();
             var fechaBase = comprobante.Fecha;
 
+            // Cuota 0: Contraentrega (si existe)
+            if (comprobante.ContraEntrega.HasValue && comprobante.ContraEntrega.Value > 0)
+            {
+                cuotas.Add(new Cuota
+                {
+                    Comprobante_Id = comprobante.Id,
+                    NumeroCuota = 0,
+                    Fecha = fechaBase, // Misma fecha del comprobante
+                    Importe = comprobante.ContraEntrega.Value,
+                    Estado = "PEN"
+                });
+            }
+
+            // Cuotas 1 a N: Cuotas regulares
             for (int i = 1; i <= comprobante.Cuotas; i++)
             {
                 var cuota = new Cuota
                 {
                     Comprobante_Id = comprobante.Id,
+                    NumeroCuota = i,
                     Fecha = fechaBase.AddMonths(i),
                     Importe = comprobante.ValorCuota,
                     Estado = "PEN"
@@ -223,7 +346,10 @@ namespace BookstoreAPI.Repositories
                     ContraEntrega = @ContraEntrega,
                     Cuotas = @Cuotas,
                     ValorCuota = @ValorCuota,
-                    vendedor_id = @Vendedor_Id
+                    vendedor_id = @Vendedor_Id,
+                    GastosEnvio = @GastosEnvio,
+                    EsElectronica = @EsElectronica,
+                    EsPresupuesto = @EsPresupuesto
                 WHERE id = @Id";
 
             const string deleteDetallesQuery = "DELETE FROM comprobante_detalle WHERE factura_id = @Id";
@@ -257,7 +383,10 @@ namespace BookstoreAPI.Repositories
                         comprobante.ContraEntrega,
                         comprobante.Cuotas,
                         comprobante.ValorCuota,
-                        comprobante.Vendedor_Id
+                        comprobante.Vendedor_Id,
+                        comprobante.GastosEnvio,
+                        comprobante.EsElectronica,
+                        comprobante.EsPresupuesto
                     }, transaction);
 
                 if (affectedRows == 0)
@@ -278,7 +407,9 @@ namespace BookstoreAPI.Repositories
 
                 // Actualizar cuotas (dentro de la transacción)
                 await _cuotaRepository.DeleteByComprobanteIdAsync(id, connection, transaction);
-                if (comprobante.Cuotas > 0 && comprobante.ValorCuota > 0)
+                var tieneCuotas = comprobante.Cuotas > 0 && comprobante.ValorCuota > 0;
+                var tieneContraEntrega = comprobante.ContraEntrega.HasValue && comprobante.ContraEntrega.Value > 0;
+                if (tieneCuotas || tieneContraEntrega)
                 {
                     comprobante.Id = id;
                     var cuotas = GenerarCuotas(comprobante);
@@ -360,10 +491,11 @@ namespace BookstoreAPI.Repositories
             return ventas;
         }
 
-        public async Task<DeudoresReporteDto> GetDeudoresAsync(int mes, int anio)
+        public async Task<DeudoresReporteDto> GetDeudoresAsync(int mes, int anio, int? zonaId = null)
         {
             // Query para obtener comprobantes del mes/año especificado
-            const string comprobantesQuery = @"
+            // Excluye comprobantes cancelados (que tienen una NC asociada) y las propias NC
+            var comprobantesQuery = @"
                 SELECT
                     c.id AS Id,
                     c.numeroComprobante AS NumeroComprobante,
@@ -372,32 +504,60 @@ namespace BookstoreAPI.Repositories
                     COALESCE(c.Cuotas, 0) AS CantidadCuotas,
                     c.total AS TotalComprobante,
                     COALESCE(c.Anticipo, 0) AS Anticipo,
-                    COALESCE(c.ContraEntrega, 0) AS ContraEntrega,
                     c.fecha AS Fecha
                 FROM comprobantes c
                 INNER JOIN clientes cl ON c.cliente_id = cl.Id
                 LEFT JOIN vendedores v ON c.vendedor_id = v.id
+                LEFT JOIN zonas z ON cl.Zona_Id = z.id
                 WHERE MONTH(c.fecha) = @Mes AND YEAR(c.fecha) = @Anio
-                ORDER BY c.fecha, c.numeroComprobante";
+                  AND c.tipoComprobante != 'NC'
+                  AND NOT EXISTS (
+                      SELECT 1 FROM comprobantes nc
+                      WHERE nc.comprobante_asociado_id = c.id
+                      AND nc.tipoComprobante = 'NC'
+                  )";
 
-            // Query para obtener cuotas de los comprobantes
-            const string cuotasQuery = @"
+            if (zonaId.HasValue)
+            {
+                comprobantesQuery += " AND z.id = @ZonaId";
+            }
+
+            comprobantesQuery += " ORDER BY c.fecha, c.numeroComprobante";
+
+            // Query para obtener todas las cuotas (incluyendo cuota 0 = contraentrega)
+            // Excluye cuotas de comprobantes cancelados
+            var cuotasQuery = @"
                 SELECT
                     cu.Id,
                     cu.Comprobante_Id,
+                    cu.numero_cuota AS NumeroCuota,
                     cu.Fecha,
                     COALESCE(cu.Importe, 0) AS Importe,
                     COALESCE(cu.importe_pagado, 0) AS ImportePagado,
                     cu.Estado
                 FROM cuotas cu
                 INNER JOIN comprobantes c ON cu.Comprobante_Id = c.id
+                INNER JOIN clientes cl ON c.cliente_id = cl.Id
+                LEFT JOIN zonas z ON cl.Zona_Id = z.id
                 WHERE MONTH(c.fecha) = @Mes AND YEAR(c.fecha) = @Anio
-                ORDER BY cu.Comprobante_Id, cu.Fecha";
+                  AND c.tipoComprobante != 'NC'
+                  AND NOT EXISTS (
+                      SELECT 1 FROM comprobantes nc
+                      WHERE nc.comprobante_asociado_id = c.id
+                      AND nc.tipoComprobante = 'NC'
+                  )";
+
+            if (zonaId.HasValue)
+            {
+                cuotasQuery += " AND z.id = @ZonaId";
+            }
+
+            cuotasQuery += " ORDER BY cu.Comprobante_Id, cu.numero_cuota";
 
             using var connection = _context.CreateConnection();
 
-            var comprobantesData = await connection.QueryAsync<dynamic>(comprobantesQuery, new { Mes = mes, Anio = anio });
-            var cuotasData = await connection.QueryAsync<dynamic>(cuotasQuery, new { Mes = mes, Anio = anio });
+            var comprobantesData = await connection.QueryAsync<dynamic>(comprobantesQuery, new { Mes = mes, Anio = anio, ZonaId = zonaId });
+            var cuotasData = await connection.QueryAsync<dynamic>(cuotasQuery, new { Mes = mes, Anio = anio, ZonaId = zonaId });
 
             var resultado = new DeudoresReporteDto
             {
@@ -418,6 +578,17 @@ namespace BookstoreAPI.Repositories
             foreach (var comp in comprobantesData)
             {
                 var comprobanteId = (int)comp.Id;
+
+                // Obtener cuotas de este comprobante
+                var cuotasComprobante = cuotasPorComprobante.TryGetValue(comprobanteId, out var cuotas)
+                    ? cuotas.ToList()
+                    : new List<dynamic>();
+
+                // Buscar cuota 0 (contraentrega)
+                var cuotaCero = cuotasComprobante.FirstOrDefault(c => (int)c.NumeroCuota == 0);
+                decimal contraEntrega = cuotaCero != null ? (decimal)cuotaCero.Importe : 0;
+                decimal contraEntregaPagado = cuotaCero != null ? (decimal)cuotaCero.ImportePagado : 0;
+
                 var deudor = new DeudorItemDto
                 {
                     ComprobanteId = comprobanteId,
@@ -427,60 +598,44 @@ namespace BookstoreAPI.Repositories
                     CantidadCuotas = (int)comp.CantidadCuotas,
                     TotalComprobante = (decimal)comp.TotalComprobante,
                     Anticipo = (decimal)comp.Anticipo,
-                    ContraEntrega = (decimal)comp.ContraEntrega,
-                    ContraEntregaPagado = 0, // Por ahora, asumir no pagado
+                    ContraEntrega = contraEntrega,
+                    ContraEntregaPagado = contraEntregaPagado,
                     Cuotas = new List<CuotaDeudorDto>()
                 };
 
-                // Agregar período de contra entrega (factura) si existe
-                if (deudor.ContraEntrega > 0)
+                // Agregar todas las cuotas (incluyendo cuota 0)
+                foreach (var cuota in cuotasComprobante)
                 {
-                    var fechaComp = (DateTime)comp.Fecha;
-                    var periodoFactura = fechaComp.ToString("MM/yyyy");
-                    periodosSet.Add(periodoFactura);
+                    var numeroCuota = (int)cuota.NumeroCuota;
+                    var fechaCuota = (DateTime?)cuota.Fecha;
+                    // Cuota 0 = Contra Entrega, las demás usan formato MM/yyyy
+                    var periodo = numeroCuota == 0 ? "C.Entrega" : (fechaCuota?.ToString("MM/yyyy") ?? "");
+                    periodosSet.Add(periodo);
 
                     deudor.Cuotas.Add(new CuotaDeudorDto
                     {
-                        CuotaId = 0, // 0 indica que es la factura/contra entrega
-                        Periodo = periodoFactura,
-                        Importe = deudor.ContraEntrega,
-                        ImportePagado = deudor.ContraEntregaPagado,
-                        Estado = deudor.ContraEntregaPagado >= deudor.ContraEntrega ? "PAG" : "PEN"
+                        CuotaId = (int)cuota.Id,
+                        Periodo = periodo,
+                        Importe = (decimal)cuota.Importe,
+                        ImportePagado = (decimal)cuota.ImportePagado,
+                        Estado = cuota.Estado ?? "PEN"
                     });
                 }
 
-                // Agregar cuotas
-                if (cuotasPorComprobante.TryGetValue(comprobanteId, out var cuotas))
-                {
-                    foreach (var cuota in cuotas)
-                    {
-                        var fechaCuota = (DateTime?)cuota.Fecha;
-                        var periodo = fechaCuota?.ToString("MM/yyyy") ?? "";
-                        periodosSet.Add(periodo);
-
-                        deudor.Cuotas.Add(new CuotaDeudorDto
-                        {
-                            CuotaId = (int)cuota.Id,
-                            Periodo = periodo,
-                            Importe = (decimal)cuota.Importe,
-                            ImportePagado = (decimal)cuota.ImportePagado,
-                            Estado = cuota.Estado ?? "PEN"
-                        });
-                    }
-                }
-
-                // Calcular saldo
-                var totalPagado = deudor.Anticipo + deudor.ContraEntregaPagado +
-                                  deudor.Cuotas.Where(c => c.CuotaId > 0).Sum(c => c.ImportePagado);
+                // Calcular saldo: Total - Anticipo - todas las cuotas pagadas
+                var totalPagado = deudor.Anticipo + deudor.Cuotas.Sum(c => c.ImportePagado);
                 deudor.Saldo = deudor.TotalComprobante - totalPagado;
 
                 resultado.Deudores.Add(deudor);
             }
 
-            // Ordenar períodos cronológicamente
+            // Ordenar períodos: primero "C.Entrega", luego cronológicamente
             resultado.PeriodosCuotas = periodosSet
                 .OrderBy(p =>
                 {
+                    // C.Entrega siempre primero
+                    if (p == "C.Entrega") return -1;
+
                     var parts = p.Split('/');
                     if (parts.Length == 2 && int.TryParse(parts[0], out int m) && int.TryParse(parts[1], out int a))
                     {
@@ -491,6 +646,95 @@ namespace BookstoreAPI.Repositories
                 .ToList();
 
             return resultado;
+        }
+
+        public async Task<string> GetSiguienteNumeroPresupuestoAsync(string puntoVenta)
+        {
+            // Formato: 0001-00000001 (igual que factura electrónica, 14 caracteres)
+            // El tipo PRE lo diferencia de las facturas electrónicas
+            var patron = $"{puntoVenta}-%";
+
+            const string query = @"
+                SELECT numeroComprobante
+                FROM comprobantes
+                WHERE numeroComprobante LIKE @Patron
+                  AND EsPresupuesto = 1
+                ORDER BY numeroComprobante DESC
+                LIMIT 1";
+
+            using var connection = _context.CreateConnection();
+            var ultimoNumero = await connection.QueryFirstOrDefaultAsync<string>(query, new { Patron = patron });
+
+            int siguienteNumero = 1;
+            if (!string.IsNullOrEmpty(ultimoNumero))
+            {
+                var partes = ultimoNumero.Split('-');
+                if (partes.Length == 2 && int.TryParse(partes[1], out int numero))
+                {
+                    siguienteNumero = numero + 1;
+                }
+            }
+
+            return $"{puntoVenta}-{siguienteNumero:D8}";
+        }
+
+        public async Task<ArticulosVendidosZonaReporteDto> GetArticulosVendidosPorZonaAsync(int? zonaId)
+        {
+            // Fecha límite: últimos 3 años
+            var fechaLimite = DateTime.Now.AddYears(-3);
+
+            var query = @"
+                SELECT
+                    LEFT(COALESCE(v.descripcion, ''), 1) AS VendedorInicial,
+                    COALESCE(cl.Codigo, '') AS CodigoCliente,
+                    cl.Nombre AS RazonSocial,
+                    COALESCE(cl.DomicilioParticular, '') AS Direccion,
+                    COALESCE(cl.DomicilioComercial, '') AS DireccionComercial,
+                    COALESCE(a.Descripcion, '') AS DescripcionArticulo,
+                    c.fecha AS FechaFactura,
+                    COALESCE(c.numeroComprobante, '') AS NumeroFactura
+                FROM comprobantes c
+                INNER JOIN clientes cl ON c.cliente_id = cl.Id
+                LEFT JOIN vendedores v ON c.vendedor_id = v.id
+                LEFT JOIN zonas z ON cl.Zona_Id = z.id
+                INNER JOIN comprobante_detalle cd ON cd.factura_id = c.id
+                INNER JOIN articulos a ON cd.articulo_id = a.Id
+                WHERE c.fecha >= @FechaLimite
+                  AND c.tipoComprobante IN ('FC', 'PRE')
+                  AND NOT EXISTS (
+                      SELECT 1 FROM comprobantes nc
+                      WHERE nc.comprobante_asociado_id = c.id
+                      AND nc.tipoComprobante = 'NC'
+                  )";
+
+            var parameters = new DynamicParameters();
+            parameters.Add("FechaLimite", fechaLimite);
+
+            if (zonaId.HasValue)
+            {
+                query += " AND z.id = @ZonaId";
+                parameters.Add("ZonaId", zonaId.Value);
+            }
+
+            query += " ORDER BY cl.Nombre, c.fecha ASC, c.id, cd.id";
+
+            using var connection = _context.CreateConnection();
+            var items = await connection.QueryAsync<ArticuloVendidoZonaItemDto>(query, parameters);
+
+            // Obtener nombre de la zona
+            var zonaNombre = "Todas las zonas";
+            if (zonaId.HasValue)
+            {
+                var zonaQuery = "SELECT descripcion FROM zonas WHERE id = @ZonaId";
+                zonaNombre = await connection.QueryFirstOrDefaultAsync<string>(zonaQuery, new { ZonaId = zonaId }) ?? "Zona desconocida";
+            }
+
+            return new ArticulosVendidosZonaReporteDto
+            {
+                ZonaId = zonaId,
+                ZonaNombre = zonaNombre,
+                Items = items.ToList()
+            };
         }
     }
 }

@@ -97,11 +97,6 @@ namespace BookstoreAPI.Services.Pdf
                         r.ConstantItem(70).Text("Dirección:");
                         r.RelativeItem().Text($"{remito.TransporteDireccion ?? "-"} ({remito.TransporteLocalidad ?? ""})");
                     });
-                    transporteCol.Item().Row(r =>
-                    {
-                        r.ConstantItem(70).Text("Comentario:");
-                        r.RelativeItem().Text(remito.Observaciones ?? "");
-                    });
                 });
 
                 column.Item().LineHorizontal(1);
@@ -132,6 +127,18 @@ namespace BookstoreAPI.Services.Pdf
                 });
 
                 column.Item().LineHorizontal(1);
+
+                // ===== OBSERVACIONES =====
+                if (!string.IsNullOrWhiteSpace(remito.Observaciones))
+                {
+                    column.Item().PaddingVertical(10).Border(1).Background(Colors.Grey.Lighten4).Padding(10).Column(obsCol =>
+                    {
+                        obsCol.Item().Text("OBSERVACIONES:").Bold().FontSize(10);
+                        obsCol.Item().PaddingTop(5).Text(remito.Observaciones).FontSize(10);
+                    });
+
+                    column.Item().LineHorizontal(1);
+                }
 
                 // ===== SECCIÓN DE FIRMA =====
                 column.Item().PaddingTop(20).Column(firmaCol =>

@@ -11,11 +11,10 @@ export interface CuotaListado {
   importe: number;
   importePagado: number;
   estado?: string;
-  esCuotaCero: boolean;
+  numeroCuota: number; // 0 = contraentrega, 1+ = cuotas regulares
+  esCuotaCero: boolean; // Calculado en el backend: numeroCuota === 0
 }
 
 export interface UpdateImportePagadoDto {
   importePagado: number;
-  esCuotaCero: boolean;
-  comprobanteId?: number;
 }

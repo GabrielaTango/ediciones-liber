@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { referenceService } from '../services/referenceService';
 import type { Zona, CreateZonaDto, UpdateZonaDto } from '../types/references';
 import { PageHeader } from '../components/PageHeader';
@@ -9,6 +9,16 @@ const ZonasPage = () => {
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filtro, setFiltro] = useState('');
+
+  const zonasFiltradas = useMemo(() => {
+    if (!filtro.trim()) return zonas;
+    const busqueda = filtro.toLowerCase();
+    return zonas.filter(z =>
+      (z.codigo?.toLowerCase() || '').includes(busqueda) ||
+      (z.descripcion?.toLowerCase() || '').includes(busqueda)
+    );
+  }, [zonas, filtro]);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [zonaToDelete, setZonaToDelete] = useState<Zona | null>(null);
@@ -115,6 +125,23 @@ const ZonasPage = () => {
 
       {error && <div className="alert alert-danger">{error}</div>}
 
+      {/* Filtro */}
+      <div className="card mb-3">
+        <div className="card-body py-2">
+          <div className="row">
+            <div className="col-md-4">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Buscar por código o descripción..."
+                value={filtro}
+                onChange={(e) => setFiltro(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {loading ? (
         <div className="text-center py-5">
           <div className="spinner-gradient" />
@@ -132,7 +159,7 @@ const ZonasPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {zonas.map((zona) => (
+                  {zonasFiltradas.map((zona) => (
                     <tr key={zona.id}>
                       <td>{zona.codigo || '-'}</td>
                       <td>{zona.descripcion || '-'}</td>

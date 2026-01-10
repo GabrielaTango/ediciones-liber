@@ -57,7 +57,7 @@ const Sidebar = () => {
               onClick={closeMobileMenu}
             >
               <Icon name="fa-solid fa-gauge" />
-              <span>Dashboard</span>
+              <span>Principal</span>
             </Link>
           </li>
           <li>
@@ -143,6 +143,16 @@ const Sidebar = () => {
             >
               <Icon name="fa-solid fa-money-check-dollar" />
               <span>Cuotas</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/articulos-vendidos-zona"
+              className={isActive('/articulos-vendidos-zona') ? 'active' : ''}
+              onClick={closeMobileMenu}
+            >
+              <Icon name="fa-solid fa-chart-bar" />
+              <span>Art. x Zona</span>
             </Link>
           </li>
           <li>

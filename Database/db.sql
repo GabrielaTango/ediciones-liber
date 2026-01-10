@@ -95,12 +95,14 @@ CREATE TABLE IF NOT EXISTS `condicionVenta` (
 CREATE TABLE IF NOT EXISTS `cuotas` (
   `Id` int NOT NULL AUTO_INCREMENT,
   `Comprobante_Id` int DEFAULT NULL,
+  `numero_cuota` int DEFAULT 1,
   `Fecha` datetime DEFAULT NULL,
   `Importe` decimal(17,2) DEFAULT NULL,
   `ImportePagado` decimal(17,2) DEFAULT 0,
   `Estado` varchar(3) COLLATE utf8mb4_general_ci DEFAULT NULL,
   PRIMARY KEY (`Id`),
   KEY `FK__comprobantes` (`Comprobante_Id`) USING BTREE,
+  KEY `idx_cuotas_numero` (`Comprobante_Id`, `numero_cuota`),
   CONSTRAINT `FK__comprobantes` FOREIGN KEY (`Comprobante_Id`) REFERENCES `comprobantes` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -115,8 +117,18 @@ CREATE TABLE IF NOT EXISTS `customers` (
   UNIQUE KEY `document_number` (`document_number`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE IF NOT EXISTS `categorias_gasto` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `Nombre` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `Descripcion` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `Activo` tinyint(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY `uk_nombre` (`Nombre`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 CREATE TABLE IF NOT EXISTS `gastos` (
   `Id` int NOT NULL AUTO_INCREMENT,
+  `NroComprobante` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
   `Categoria` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
   `Descripcion` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
   `Fecha` date NOT NULL,

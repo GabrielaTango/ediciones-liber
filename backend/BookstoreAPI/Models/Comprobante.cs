@@ -17,5 +17,11 @@ namespace BookstoreAPI.Models
         public int? Cuotas { get; set; }
         public decimal? ValorCuota { get; set; }
         public int? Vendedor_Id { get; set; }
+        public decimal? GastosEnvio { get; set; }
+        public bool EsElectronica { get; set; } = true;
+        public bool EsPresupuesto { get; set; } = false;
+
+        // Relación con comprobante asociado (para NC: ID de la factura que cancela)
+        public int? ComprobanteAsociado_Id { get; set; }
     }
 }

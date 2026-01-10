@@ -14,6 +14,8 @@ namespace BookstoreAPI.Services.Pdf
         private readonly AfipConfig _config;
         private readonly IAfipQrService _qrService;
         private readonly ILogger<ComprobantePdfService> _logger;
+        private int sizeImporte = 8;
+        private int sizeCuotas = 12;
 
         public ComprobantePdfService(
             IOptions<AfipConfig> config,
@@ -34,22 +36,21 @@ namespace BookstoreAPI.Services.Pdf
             {
                 var document = Document.Create(container =>
                 {
-                    container.Page(page =>
+                    // Comprobante por triplicado (3 páginas)
+                    for (int copia = 1; copia <= 3; copia++)
                     {
-                        page.Size(PageSizes.A4);
-                        page.Margin(2, Unit.Centimetre);
-                        page.DefaultTextStyle(x => x.FontSize(10));
-
-                        page.Header().Element(ComposeHeader);
-                        page.Content().Element(c => ComposeContent(c, comprobante, cliente, detalles));
-                        page.Footer().AlignCenter().Text(text =>
+                        var esPrimeraHoja = copia == 1;
+                        container.Page(page =>
                         {
-                            text.Span("Página ");
-                            text.CurrentPageNumber();
-                            text.Span(" de ");
-                            text.TotalPages();
+                            page.Size(PageSizes.A4);
+                            page.Margin(2, Unit.Centimetre);
+                            page.DefaultTextStyle(x => x.FontSize(10));
+
+                            page.Header().Element(h => ComposeHeader(h, comprobante));
+                            page.Content().Element(c => ComposeContent(c, comprobante, cliente, detalles));
+                            page.Footer().Element(f => ComposeFooter(f, comprobante, cliente, detalles, esPrimeraHoja));
                         });
-                    });
+                    }
                 });
 
                 return document.GeneratePdf();
@@ -61,28 +62,44 @@ namespace BookstoreAPI.Services.Pdf
             }
         }
 
-        private void ComposeHeader(IContainer container)
+        private void ComposeHeader(IContainer container, Comprobante comprobante)
         {
+            var tipoTexto = ObtenerTipoComprobanteCompleto(comprobante.TipoComprobante);
+            var letraComprobante = ObtenerLetraComprobante(comprobante.TipoComprobante);
+            var esPresupuesto = comprobante.TipoComprobante == "PRE" || comprobante.EsPresupuesto;
 
-
-            container.Row(row =>
+            container.Column(col =>
             {
-                row.RelativeItem().Column(column =>
+                col.Item().Row(row =>
                 {
-                    // Tipo de comprobante
-                    column.Item().Row(row =>
+                    row.RelativeItem().Column(column =>
                     {
-                        row.RelativeItem().Column(col =>
+                        // Tipo de comprobante con letra
+                        column.Item().Row(r =>
                         {
-                            col.Item().AlignCenter().PaddingVertical(10).Border(1).Background(Colors.Grey.Lighten3)
-                                .Text(DeterminarTipoComprobanteTexto("")).FontSize(16).Bold();
+                            r.RelativeItem().Column(c =>
+                            {
+                                c.Item().AlignCenter().PaddingVertical(10).Border(1).Background(Colors.Grey.Lighten3)
+                                    .Text(letraComprobante).FontSize(16).Bold();
+                            });
                         });
+                        column.Item().Width(100).Image("./Images/LiberLogo.png");
+                        column.Item().Text($"CUIT: {_config.CUIT}").FontSize(10);
+                        column.Item().Text("Dirección: Calle Falsa 123").FontSize(9);
+                        column.Item().Text("Tel: (011) 1234-5678").FontSize(9);
                     });
-                    column.Item().Width(100).Image("./Images/LiberLogo.png");
-                    column.Item().Text($"CUIT: {_config.CUIT}").FontSize(10);
-                    column.Item().Text("Dirección: Calle Falsa 123").FontSize(9);
-                    column.Item().Text("Tel: (011) 1234-5678").FontSize(9);
                 });
+
+                // Tipo de comprobante (FACTURA / NOTA DE CRÉDITO / PRESUPUESTO)
+                col.Item().PaddingTop(10).AlignCenter().Text(tipoTexto).FontSize(14).Bold();
+
+                // Leyenda para presupuestos
+                if (esPresupuesto)
+                {
+                    col.Item().PaddingTop(5).AlignCenter()
+                        .Text("COMPROBANTE NO VÁLIDO COMO FACTURA")
+                        .FontSize(12).Bold().FontColor(Colors.Red.Medium);
+                }
             });
         }
 
@@ -152,10 +169,10 @@ namespace BookstoreAPI.Services.Pdf
                     // Detalles
                     foreach (var detalle in detalles)
                     {
-                        table.Cell().Element(CellStyle).Text(detalle.Cantidad.ToString());
-                        table.Cell().Element(CellStyle).Text($"Artículo ID: {detalle.Articulo_Id}");
-                        table.Cell().Element(CellStyle).AlignRight().Text($"${detalle.Precio_Unitario:N2}");
-                        table.Cell().Element(CellStyle).AlignRight().Text($"${detalle.Subtotal:N2}");
+                        table.Cell().Element(CellStyle).Text(detalle.Cantidad.ToString()).FontSize(sizeImporte);
+                        table.Cell().Element(CellStyle).Text($"Artículo ID: {detalle.Articulo_Id}").FontSize(sizeImporte);
+                        table.Cell().Element(CellStyle).AlignRight().Text($"${detalle.Precio_Unitario:N2}").FontSize(sizeImporte);
+                        table.Cell().Element(CellStyle).AlignRight().Text($"${detalle.Subtotal:N2}").FontSize(sizeImporte);
 
                         static IContainer CellStyle(IContainer container)
                         {
@@ -163,14 +180,18 @@ namespace BookstoreAPI.Services.Pdf
                         }
                     }
                 });
+            });
+        }
 
-                column.Item().PaddingVertical(10);
-
+        private void ComposeFooter(IContainer container, Comprobante comprobante, Cliente cliente, List<ComprobanteDetalle> detalles, bool mostrarGastosEnvio = true)
+        {
+            container.Column(column =>
+            {
                 // Totales y QR
                 column.Item().Row(row =>
                 {
                     // QR Code
-                    row.ConstantItem(150).Column(col =>
+                    row.ConstantItem(120).Column(col =>
                     {
                         if (!string.IsNullOrEmpty(comprobante.CAE))
                         {
@@ -178,12 +199,12 @@ namespace BookstoreAPI.Services.Pdf
                             {
                                 var qrBytes = _qrService.GenerarQrBytes(comprobante, cliente);
                                 col.Item().Image(qrBytes);
-                                col.Item().AlignCenter().Text("Escanear QR para verificar").FontSize(8);
+                                col.Item().AlignCenter().Text("Escanear QR para verificar").FontSize(7);
                             }
                             catch (Exception ex)
                             {
                                 _logger.LogWarning(ex, "No se pudo generar QR en PDF");
-                                col.Item().Text("QR no disponible");
+                                col.Item().Text("QR no disponible").FontSize(8);
                             }
                         }
                     });
@@ -198,8 +219,8 @@ namespace BookstoreAPI.Services.Pdf
 
                         col.Item().Row(r =>
                         {
-                            r.RelativeItem().Text("Subtotal:");
-                            r.ConstantItem(80).AlignRight().Text($"${subtotal:N2}");
+                            r.RelativeItem().Text("Subtotal:").FontSize(8);
+                            r.ConstantItem(80).AlignRight().Text($"${subtotal:N2}").FontSize(sizeImporte);
                         });
 
                         if (iva > 0)
@@ -213,10 +234,48 @@ namespace BookstoreAPI.Services.Pdf
 
                         col.Item().PaddingTop(5).Row(r =>
                         {
-                            r.RelativeItem().Text("TOTAL:").FontSize(14).Bold();
-                            r.ConstantItem(80).AlignRight().Text($"${comprobante.Total:N2}").FontSize(14).Bold();
+                            r.RelativeItem().Text("TOTAL:").FontSize(8).Bold();
+                            r.ConstantItem(80).AlignRight().Text($"${comprobante.Total:N2}").FontSize(sizeImporte).Bold();
                         });
+
+                        // Contra Entrega
+                        if (comprobante.ContraEntrega.HasValue && comprobante.ContraEntrega.Value > 0)
+                        {
+                            col.Item().PaddingTop(5).Row(r =>
+                            {
+                                r.RelativeItem().Text("Contra Entrega:");
+                                r.ConstantItem(80).AlignRight().Text($"${comprobante.ContraEntrega.Value:N2}");
+                            });
+                        }
+
+                        // Cuotas restantes
+                        if (comprobante.Cuotas.HasValue && comprobante.Cuotas.Value > 0 && comprobante.ValorCuota.HasValue && comprobante.ValorCuota.Value > 0)
+                        {
+                            col.Item().PaddingTop(5).Row(r =>
+                            {
+                                r.RelativeItem().Text($"Resta pagar {comprobante.Cuotas.Value} Cuotas de ${comprobante.ValorCuota.Value:N2}").FontSize(sizeCuotas);
+                            });
+                        }
+
+                        // Gastos de Envío solo en primera hoja
+                        if (mostrarGastosEnvio && comprobante.GastosEnvio.HasValue && comprobante.GastosEnvio.Value > 0)
+                        {
+                            col.Item().PaddingTop(10).Border(1).Background(Colors.Grey.Lighten4).Padding(5).Row(r =>
+                            {
+                                r.RelativeItem().Text("Valor Envío:").FontSize(10).Bold();
+                                r.ConstantItem(80).AlignRight().Text($"$ {comprobante.GastosEnvio.Value:N2}").FontSize(10).Bold();
+                            });
+                        }
                     });
+                });
+
+                // Paginación
+                column.Item().PaddingTop(10).AlignCenter().Text(text =>
+                {
+                    text.Span("Página ");
+                    text.CurrentPageNumber();
+                    text.Span(" de ");
+                    text.TotalPages();
                 });
             });
         }
@@ -233,6 +292,28 @@ namespace BookstoreAPI.Services.Pdf
             };
         }
 
+        private string ObtenerTipoComprobanteCompleto(string? tipoComprobante)
+        {
+            return tipoComprobante?.ToUpper() switch
+            {
+                "FC" => "FACTURA",
+                "NC" => "NOTA DE CRÉDITO",
+                "PRE" => "PRESUPUESTO",
+                _ => "COMPROBANTE"
+            };
+        }
+
+        private string ObtenerLetraComprobante(string? tipoComprobante)
+        {
+            return tipoComprobante?.ToUpper() switch
+            {
+                "FC" => "C",      // Factura C
+                "NC" => "C",      // Nota de Crédito C
+                "PRE" => "X",     // Presupuesto (sin letra oficial)
+                _ => "C"
+            };
+        }
+
         public byte[] GenerarComprobanteCompletoConCupones(Comprobante comprobante, Cliente cliente, List<ComprobanteDetalle> detalles, List<Cuota> cuotas)
         {
             try
@@ -242,21 +323,16 @@ namespace BookstoreAPI.Services.Pdf
                     // ===== COMPROBANTE POR TRIPLICADO (3 páginas) =====
                     for (int copia = 1; copia <= 3; copia++)
                     {
+                        var esPrimeraHoja = copia == 1;
                         container.Page(page =>
                         {
                             page.Size(PageSizes.A4);
                             page.Margin(2, Unit.Centimetre);
                             page.DefaultTextStyle(x => x.FontSize(10));
 
-                            page.Header().Element(ComposeHeader);
+                            page.Header().Element(h => ComposeHeader(h, comprobante));
                             page.Content().Element(c => ComposeContent(c, comprobante, cliente, detalles));
-                            page.Footer().AlignCenter().Text(text =>
-                            {
-                                text.Span("Página ");
-                                text.CurrentPageNumber();
-                                text.Span(" de ");
-                                text.TotalPages();
-                            });
+                            page.Footer().Element(f => ComposeFooter(f, comprobante, cliente, detalles, esPrimeraHoja));
                         });
                     }
 

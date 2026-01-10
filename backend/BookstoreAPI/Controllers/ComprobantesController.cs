@@ -40,10 +40,23 @@ namespace BookstoreAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(
+            [FromQuery] int? zonaId,
+            [FromQuery] int? clienteId,
+            [FromQuery] string? tipoComprobante,
+            [FromQuery] DateTime? fechaDesde,
+            [FromQuery] DateTime? fechaHasta)
         {
             try
             {
+                // Si hay algún filtro, usar el método filtrado
+                if (zonaId.HasValue || clienteId.HasValue || !string.IsNullOrWhiteSpace(tipoComprobante) || fechaDesde.HasValue || fechaHasta.HasValue)
+                {
+                    var comprobantesFiltrados = await _comprobanteRepository.GetAllFilteredAsync(
+                        zonaId, clienteId, tipoComprobante, fechaDesde, fechaHasta);
+                    return Ok(comprobantesFiltrados);
+                }
+
                 var comprobantes = await _comprobanteService.GetAllAsync();
                 return Ok(comprobantes);
             }
@@ -123,6 +136,21 @@ namespace BookstoreAPI.Controllers
             {
                 _logger.LogError(ex, "Error al eliminar comprobante");
                 return StatusCode(500, new { message = "Error al eliminar comprobante" });
+            }
+        }
+
+        [HttpPost("{id}/cancelar")]
+        public async Task<IActionResult> Cancelar(int id)
+        {
+            try
+            {
+                var notaCredito = await _comprobanteService.CancelarAsync(id);
+                return Ok(notaCredito);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al cancelar comprobante {Id}", id);
+                return StatusCode(500, new { message = "Error al cancelar comprobante", error = ex.Message });
             }
         }
 
@@ -242,7 +270,7 @@ namespace BookstoreAPI.Controllers
         }
 
         [HttpGet("deudores")]
-        public async Task<IActionResult> GetDeudores([FromQuery] int mes, [FromQuery] int anio)
+        public async Task<IActionResult> GetDeudores([FromQuery] int mes, [FromQuery] int anio, [FromQuery] int? zonaId)
         {
             try
             {
@@ -254,7 +282,7 @@ namespace BookstoreAPI.Controllers
                     return BadRequest(new { message = "El año debe estar entre 2000 y 2100" });
 
                 // Obtener datos de deudores
-                var deudores = await _comprobanteRepository.GetDeudoresAsync(mes, anio);
+                var deudores = await _comprobanteRepository.GetDeudoresAsync(mes, anio, zonaId);
                 return Ok(deudores);
             }
             catch (Exception ex)
@@ -296,6 +324,41 @@ namespace BookstoreAPI.Controllers
             {
                 _logger.LogError(ex, "Error al generar PDF completo del comprobante {Id}", id);
                 return StatusCode(500, new { message = "Error al generar PDF completo del comprobante", error = ex.Message });
+            }
+        }
+
+        [HttpGet("articulos-vendidos-zona")]
+        public async Task<IActionResult> GetArticulosVendidosPorZona([FromQuery] int? zonaId)
+        {
+            try
+            {
+                var reporte = await _comprobanteRepository.GetArticulosVendidosPorZonaAsync(zonaId);
+                return Ok(reporte);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener artículos vendidos por zona");
+                return StatusCode(500, new { message = "Error al obtener artículos vendidos por zona", error = ex.Message });
+            }
+        }
+
+        [HttpGet("articulos-vendidos-zona-pdf")]
+        public async Task<IActionResult> GetArticulosVendidosPorZonaPdf([FromQuery] int? zonaId, [FromServices] IArticulosVendidosZonaPdfService articulosZonaPdfService)
+        {
+            try
+            {
+                var reporte = await _comprobanteRepository.GetArticulosVendidosPorZonaAsync(zonaId);
+
+                if (!reporte.Items.Any())
+                    return NotFound(new { message = "No se encontraron artículos vendidos en el período especificado" });
+
+                var pdfBytes = articulosZonaPdfService.GenerarPdf(reporte);
+                return File(pdfBytes, "application/pdf");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al generar PDF de artículos vendidos por zona");
+                return StatusCode(500, new { message = "Error al generar PDF de artículos vendidos por zona", error = ex.Message });
             }
         }
     }

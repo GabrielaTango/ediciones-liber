@@ -6,6 +6,21 @@ import type { Zona } from '../types/references';
 import { PageHeader } from '../components/PageHeader';
 import { GradientButton } from '../components/GradientButton';
 
+const MESES = [
+  { value: 1, label: 'Enero' },
+  { value: 2, label: 'Febrero' },
+  { value: 3, label: 'Marzo' },
+  { value: 4, label: 'Abril' },
+  { value: 5, label: 'Mayo' },
+  { value: 6, label: 'Junio' },
+  { value: 7, label: 'Julio' },
+  { value: 8, label: 'Agosto' },
+  { value: 9, label: 'Septiembre' },
+  { value: 10, label: 'Octubre' },
+  { value: 11, label: 'Noviembre' },
+  { value: 12, label: 'Diciembre' },
+];
+
 const CuotasPage = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState<number | null>(null);
@@ -13,9 +28,15 @@ const CuotasPage = () => {
   const [cuotas, setCuotas] = useState<CuotaListado[]>([]);
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [zonaId, setZonaId] = useState<number | ''>('');
+  const [mes, setMes] = useState<number | ''>(new Date().getMonth() + 1);
+  const [anio, setAnio] = useState<number | ''>(new Date().getFullYear());
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Generar lista de años (desde 2020 hasta el año actual + 1)
+  const anioActual = new Date().getFullYear();
+  const anios = Array.from({ length: anioActual - 2020 + 2 }, (_, i) => 2020 + i);
 
   useEffect(() => {
     loadZonas();
@@ -23,7 +44,7 @@ const CuotasPage = () => {
 
   useEffect(() => {
     loadCuotas();
-  }, [zonaId]);
+  }, [zonaId, mes, anio]);
 
   useEffect(() => {
     if (editingId !== null && inputRef.current) {
@@ -45,7 +66,11 @@ const CuotasPage = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await cuotaService.getAll(zonaId || undefined);
+      const data = await cuotaService.getAll({
+        zonaId: zonaId || undefined,
+        mes: mes || undefined,
+        anio: anio || undefined
+      });
       setCuotas(data);
     } catch (err) {
       setError('Error al cargar las cuotas');
@@ -79,9 +104,7 @@ const CuotasPage = () => {
         try {
           setSaving(cuota.id);
           await cuotaService.updateImportePagado(cuota.id, {
-            importePagado: newValue,
-            esCuotaCero: cuota.esCuotaCero,
-            comprobanteId: cuota.esCuotaCero ? cuota.comprobanteId : undefined
+            importePagado: newValue
           });
 
           // Actualizar el estado local
@@ -163,7 +186,7 @@ const CuotasPage = () => {
       <div className="card mb-4">
         <div className="card-body">
           <div className="row align-items-end">
-            <div className="col-md-4 mb-3 mb-md-0">
+            <div className="col-md-3 mb-3 mb-md-0">
               <label className="form-label">Zona</label>
               <select
                 className="form-select"
@@ -174,6 +197,36 @@ const CuotasPage = () => {
                 {zonas.map((z) => (
                   <option key={z.id} value={z.id}>
                     {z.descripcion}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-2 mb-3 mb-md-0">
+              <label className="form-label">Mes</label>
+              <select
+                className="form-select"
+                value={mes}
+                onChange={(e) => setMes(e.target.value ? parseInt(e.target.value, 10) : '')}
+              >
+                <option value="">Todos</option>
+                {MESES.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-2 mb-3 mb-md-0">
+              <label className="form-label">Año</label>
+              <select
+                className="form-select"
+                value={anio}
+                onChange={(e) => setAnio(e.target.value ? parseInt(e.target.value, 10) : '')}
+              >
+                <option value="">Todos</option>
+                {anios.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
                   </option>
                 ))}
               </select>
@@ -252,6 +305,7 @@ const CuotasPage = () => {
                               style={{ width: '120px', marginLeft: 'auto' }}
                               value={editValue}
                               onChange={(e) => setEditValue(e.target.value)}
+                              onFocus={(e) => e.target.select()}
                               onBlur={handleBlur}
                               onKeyDown={(e) => handleKeyDown(e, cuota)}
                               step="0.01"

@@ -25,6 +25,9 @@ namespace BookstoreAPI.DTOs
         public int? Cuotas { get; set; }
         public decimal? ValorCuota { get; set; }
         public int? Vendedor_Id { get; set; }
+        public decimal? GastosEnvio { get; set; }
+        public bool EsElectronica { get; set; } = true;
+        public bool EsPresupuesto { get; set; } = false;
 
         [Required(ErrorMessage = "Los detalles son obligatorios")]
         public List<ComprobanteDetalleDto> Detalles { get; set; } = new List<ComprobanteDetalleDto>();
@@ -53,6 +56,9 @@ namespace BookstoreAPI.DTOs
         public int? Cuotas { get; set; }
         public decimal? ValorCuota { get; set; }
         public int? Vendedor_Id { get; set; }
+        public decimal? GastosEnvio { get; set; }
+        public bool EsElectronica { get; set; } = true;
+        public bool EsPresupuesto { get; set; } = false;
 
         [Required(ErrorMessage = "Los detalles son obligatorios")]
         public List<ComprobanteDetalleDto> Detalles { get; set; } = new List<ComprobanteDetalleDto>();

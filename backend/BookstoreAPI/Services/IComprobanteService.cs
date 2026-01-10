@@ -9,5 +9,6 @@ namespace BookstoreAPI.Services
         Task<ComprobanteConDetallesDto> CreateAsync(CreateComprobanteDto dto);
         Task<ComprobanteConDetallesDto?> UpdateAsync(int id, UpdateComprobanteDto dto);
         Task<bool> DeleteAsync(int id);
+        Task<ComprobanteConDetallesDto> CancelarAsync(int comprobanteId);
     }
 }

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { comprobanteService } from '../services/comprobanteService';
+import { referenceService } from '../services/referenceService';
 import type { DeudoresReporte, DeudorItem } from '../types/deudores';
+import type { Zona } from '../types/references';
 import { PageHeader } from '../components/PageHeader';
 import { GradientButton } from '../components/GradientButton';
 
@@ -8,21 +10,33 @@ const DeudoresPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reporte, setReporte] = useState<DeudoresReporte | null>(null);
+  const [zonas, setZonas] = useState<Zona[]>([]);
 
   // Inicializar con el mes actual
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [anio, setAnio] = useState(now.getFullYear());
+  const [zonaId, setZonaId] = useState<number | ''>('');
 
   useEffect(() => {
+    loadZonas();
     loadDeudores();
   }, []);
+
+  const loadZonas = async () => {
+    try {
+      const data = await referenceService.getZonas();
+      setZonas(data);
+    } catch (err) {
+      console.error('Error loading zonas:', err);
+    }
+  };
 
   const loadDeudores = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await comprobanteService.getDeudores(mes, anio);
+      const data = await comprobanteService.getDeudores(mes, anio, zonaId || undefined);
       setReporte(data);
     } catch (err) {
       setError('Error al cargar los datos de deudores');
@@ -99,6 +113,21 @@ const DeudoresPage = () => {
         <div className="card-body">
           <div className="row align-items-end">
             <div className="col-md-3 mb-3 mb-md-0">
+              <label className="form-label">Zona</label>
+              <select
+                className="form-select"
+                value={zonaId}
+                onChange={(e) => setZonaId(e.target.value ? parseInt(e.target.value, 10) : '')}
+              >
+                <option value="">Todas las zonas</option>
+                {zonas.map((z) => (
+                  <option key={z.id} value={z.id}>
+                    {z.descripcion}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-2 mb-3 mb-md-0">
               <label className="form-label">Mes</label>
               <select
                 className="form-select"
@@ -112,7 +141,7 @@ const DeudoresPage = () => {
                 ))}
               </select>
             </div>
-            <div className="col-md-3 mb-3 mb-md-0">
+            <div className="col-md-2 mb-3 mb-md-0">
               <label className="form-label">Año</label>
               <select
                 className="form-select"

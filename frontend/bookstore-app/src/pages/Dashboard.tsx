@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { dashboardService } from '../services/dashboardService';
 import type { DashboardStats, ActividadReciente } from '../types/dashboard';
@@ -16,6 +16,7 @@ import { GradientCard } from '../components/GradientCard';
 import { Icon } from '../components/Icon';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({
     totalComprobantes: 0,
     totalClientes: 0,
@@ -75,7 +76,7 @@ const Dashboard = () => {
   return (
     <div>
       <PageHeader
-        title="Dashboard"
+        title="Bienvenido"
 
         subtitle="Bienvenido de nuevo, aquí está tu resumen del día"
       />
@@ -88,6 +89,7 @@ const Dashboard = () => {
             value={stats.totalComprobantes}
             icon="fa-solid fa-receipt"
             variant="primary"
+            onClick={() => navigate('/comprobantes')}
           />
         </div>
         <div className="col-md-3">
@@ -96,6 +98,7 @@ const Dashboard = () => {
             value={stats.totalClientes}
             icon="fa-solid fa-users"
             variant="warning"
+            onClick={() => navigate('/clientes')}
           />
         </div>
         <div className="col-md-3">
@@ -104,6 +107,7 @@ const Dashboard = () => {
             value={stats.totalArticulos}
             icon="fa-solid fa-box"
             variant="success"
+            onClick={() => navigate('/articulos')}
           />
         </div>
         <div className="col-md-3">
@@ -112,6 +116,7 @@ const Dashboard = () => {
             value={stats.ventasHoy}
             icon="fa-solid fa-chart-line"
             variant="danger"
+            onClick={() => navigate('/comprobantes')}
           />
         </div>
       </div>

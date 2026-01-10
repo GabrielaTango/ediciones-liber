@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useParams, useLocation, Link } from 'react-router-dom';
+import Swal from 'sweetalert2';
+import Select from 'react-select';
 import { comprobanteService } from '../services/comprobanteService';
 import { clienteService } from '../services/clienteService';
 import { articuloService } from '../services/articuloService';
@@ -15,6 +17,15 @@ import type { Articulo } from '../types/articulo';
 import type { Vendedor } from '../types/references';
 import IconButton from '../components/IconButton';
 
+interface SelectOption {
+  value: number;
+  label: string;
+}
+
+interface ArticuloOption extends SelectOption {
+  precio: number;
+}
+
 interface ItemTemp extends ComprobanteDetalleDto {
   tempId: number;
   articuloDescripcion?: string;
@@ -24,7 +35,9 @@ interface ItemTemp extends ComprobanteDetalleDto {
 const ComprobanteFormPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const isEditMode = !!id;
+  const location = useLocation();
+  const isViewMode = location.pathname.includes('/ver/');
+  const isEditMode = !!id && !isViewMode;
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [articulos, setArticulos] = useState<Articulo[]>([]);
@@ -51,19 +64,75 @@ const ComprobanteFormPage = () => {
   const [contraEntrega, setContraEntrega] = useState<number>(0);
   const [cantidadCuotas, setCantidadCuotas] = useState<number>(1);
   const [valorCuota, setValorCuota] = useState<number>(0);
+  const [gastosEnvio, setGastosEnvio] = useState<number>(0);
+
+  // Tipo de comprobante
+  const [esElectronica, setEsElectronica] = useState<boolean>(true);
+  const [esPresupuesto, setEsPresupuesto] = useState<boolean>(false);
+
+  // Datos del comprobante cargado (para modo visualización)
+  const [tipoComprobanteCargado, setTipoComprobanteCargado] = useState<string>('');
+  const [numeroComprobanteCargado, setNumeroComprobanteCargado] = useState<string>('');
+  const [caeCargado, setCaeCargado] = useState<string>('');
+  const [fechaCargada, setFechaCargada] = useState<string>('');
+  const [estaCancelado, setEstaCancelado] = useState<boolean>(false);
+  const [notaCreditoNumero, setNotaCreditoNumero] = useState<string>('');
+  const [comprobanteAsociadoNumero, setComprobanteAsociadoNumero] = useState<string>('');
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  // Helper para obtener el nombre del tipo de comprobante
+  const getTipoComprobanteNombre = (tipo: string): string => {
+    switch (tipo) {
+      case 'FC': return 'Factura';
+      case 'NC': return 'Nota de Crédito';
+      case 'PRE': return 'Presupuesto';
+      default: return tipo || 'Comprobante';
+    }
+  };
+
+  // Helper para obtener el color del badge según el tipo
+  const getTipoComprobanteBadgeClass = (tipo: string): string => {
+    switch (tipo) {
+      case 'FC': return 'bg-success';
+      case 'NC': return 'bg-danger';
+      case 'PRE': return 'bg-warning text-dark';
+      default: return 'bg-secondary';
+    }
+  };
+
+  // Opciones para React Select
+  const clienteOptions = useMemo<SelectOption[]>(() =>
+    clientes.map(c => ({
+      value: c.id,
+      label: `${c.nombre} - ${c.nroDocumento || 'Sin documento'}`
+    })), [clientes]);
+
+  const articuloOptions = useMemo<ArticuloOption[]>(() =>
+    articulos.map(a => ({
+      value: a.id,
+      label: `${a.codigo} - ${a.descripcion} ($${a.precio?.toFixed(2) || '0.00'})`,
+      precio: a.precio || 0
+    })), [articulos]);
+
+  // Valores seleccionados para React Select
+  const selectedClienteOption = useMemo(() =>
+    clienteOptions.find(o => o.value === selectedClienteId) || null
+  , [clienteOptions, selectedClienteId]);
+
+  const selectedArticuloOption = useMemo(() =>
+    articuloOptions.find(o => o.value === itemForm.articulo_Id) || null
+  , [articuloOptions, itemForm.articulo_Id]);
 
   useEffect(() => {
     loadInitialData();
   }, []);
 
   useEffect(() => {
-    if (isEditMode && id) {
+    if ((isEditMode || isViewMode) && id) {
       loadComprobante(parseInt(id));
     }
-  }, [id, isEditMode]);
+  }, [id, isEditMode, isViewMode]);
 
   useEffect(() => {
     if (selectedClienteId) {
@@ -88,7 +157,6 @@ const ComprobanteFormPage = () => {
       setArticulos(articulosData);
       setVendedores(vendedoresData);
     } catch (err) {
-      setError('Error al cargar datos iniciales');
       console.error('Error loading initial data:', err);
     } finally {
       setLoading(false);
@@ -105,6 +173,18 @@ const ComprobanteFormPage = () => {
       setContraEntrega(comprobante.contraEntrega || 0);
       setCantidadCuotas(comprobante.cuotas || 1);
       setValorCuota(comprobante.valorCuota || 0);
+      setGastosEnvio(comprobante.gastosEnvio || 0);
+      setEsElectronica(comprobante.esElectronica ?? true);
+      setEsPresupuesto(comprobante.esPresupuesto ?? false);
+
+      // Guardar datos para visualización
+      setTipoComprobanteCargado(comprobante.tipoComprobante || '');
+      setNumeroComprobanteCargado(comprobante.numeroComprobante || '');
+      setCaeCargado(comprobante.cae || '');
+      setFechaCargada(comprobante.fecha ? new Date(comprobante.fecha).toLocaleDateString('es-AR') : '');
+      setEstaCancelado(comprobante.estaCancelado || false);
+      setNotaCreditoNumero(comprobante.notaCreditoNumero || '');
+      setComprobanteAsociadoNumero(comprobante.comprobanteAsociadoNumero || '');
 
       const itemsTemp: ItemTemp[] = comprobante.detalles.map((d, index) => ({
         tempId: index + 1,
@@ -118,7 +198,6 @@ const ComprobanteFormPage = () => {
       setItems(itemsTemp);
       setNextTempId(itemsTemp.length + 1);
     } catch (err) {
-      setError('Error al cargar el comprobante');
       console.error('Error loading comprobante:', err);
     } finally {
       setLoading(false);
@@ -138,9 +217,8 @@ const ComprobanteFormPage = () => {
     }
   };
 
-  const handleClienteChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const clienteId = parseInt(e.target.value);
-    setSelectedClienteId(clienteId);
+  const handleClienteChange = (option: SelectOption | null) => {
+    setSelectedClienteId(option?.value || null);
   };
 
   const handleVendedorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -172,14 +250,11 @@ const ComprobanteFormPage = () => {
     setItems(items.filter(item => item.tempId !== tempId));
   };
 
-  const handleArticuloSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const articuloId = parseInt(e.target.value);
-    const articulo = articulos.find(a => a.id === articuloId);
-
+  const handleArticuloSelect = (option: ArticuloOption | null) => {
     setItemForm({
       ...itemForm,
-      articulo_Id: articuloId,
-      precio_Unitario: articulo?.precio || 0,
+      articulo_Id: option?.value || 0,
+      precio_Unitario: option?.precio || 0,
     });
   };
 
@@ -193,12 +268,12 @@ const ComprobanteFormPage = () => {
 
   const handleSaveItem = () => {
     if (itemForm.articulo_Id === 0) {
-      setError('Debe seleccionar un artículo');
+      mostrarError('Debe seleccionar un artículo');
       return;
     }
 
     if (itemForm.cantidad <= 0) {
-      setError('La cantidad debe ser mayor a 0');
+      mostrarError('La cantidad debe ser mayor a 0');
       return;
     }
 
@@ -223,7 +298,6 @@ const ComprobanteFormPage = () => {
     }
 
     setShowItemModal(false);
-    setError(null);
   };
 
   const calcularTotalItems = (): number => {
@@ -236,31 +310,44 @@ const ComprobanteFormPage = () => {
     return Math.abs(totalItems - totalComprobante) < 0.01; // Tolerancia de centavos
   };
 
+  const mostrarError = (mensaje: string) => {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: mensaje,
+      confirmButtonColor: '#dc3545',
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
 
     if (!selectedClienteId) {
-      setError('Debe seleccionar un cliente');
+      mostrarError('Debe seleccionar un cliente');
+      return;
+    }
+
+    if (!esElectronica && !esPresupuesto) {
+      mostrarError('Si selecciona modalidad Manual, debe marcar el tilde "Es Presupuesto"');
       return;
     }
 
     const totalComprobante = calcularTotalComprobante();
 
     if (totalComprobante <= 0) {
-      setError('El total del comprobante debe ser mayor a 0');
+      mostrarError('El total del comprobante debe ser mayor a 0');
       return;
     }
 
     if (items.length === 0) {
-      setError('Debe agregar al menos un item');
+      mostrarError('Debe agregar al menos un item');
       return;
     }
 
     if (!validarTotales()) {
       const totalItems = calcularTotalItems();
       const diferencia = totalComprobante - totalItems;
-      setError(`El total de items ($${totalItems.toFixed(2)}) no coincide con el total calculado ($${totalComprobante.toFixed(2)}). Diferencia: $${diferencia.toFixed(2)}`);
+      mostrarError(`El total de items ($${totalItems.toFixed(2)}) no coincide con el total calculado ($${totalComprobante.toFixed(2)}). Diferencia: $${diferencia.toFixed(2)}`);
       return;
     }
 
@@ -281,6 +368,9 @@ const ComprobanteFormPage = () => {
       contraEntrega: contraEntrega,
       cuotas: cantidadCuotas,
       valorCuota: valorCuota,
+      gastosEnvio: gastosEnvio > 0 ? gastosEnvio : undefined,
+      esElectronica: esElectronica,
+      esPresupuesto: esPresupuesto,
       detalles: detalles,
     };
 
@@ -288,15 +378,23 @@ const ComprobanteFormPage = () => {
       setLoading(true);
       if (isEditMode && id) {
         await comprobanteService.update(parseInt(id), dto as UpdateComprobanteDto);
+        navigate('/comprobantes');
       } else {
-        await comprobanteService.create(dto as CreateComprobanteDto);
+        const nuevoComprobante = await comprobanteService.create(dto as CreateComprobanteDto);
+        await Swal.fire({
+          icon: 'success',
+          title: 'Comprobante Generado',
+          html: `<p>Se ha generado el comprobante:</p><h3 style="color: #198754; margin: 10px 0;">${nuevoComprobante.numeroComprobante}</h3>`,
+          confirmButtonText: 'Aceptar',
+          confirmButtonColor: '#198754',
+        });
+        navigate('/comprobantes');
       }
-      navigate('/comprobantes');
     } catch (err: any) {
-      setError(
-        err.response?.data?.message ||
-        `Error al ${isEditMode ? 'actualizar' : 'crear'} el comprobante`
-      );
+      const mensaje = err.response?.data?.message ||
+        err.response?.data?.error ||
+        `Error al ${isEditMode ? 'actualizar' : 'crear'} el comprobante`;
+      mostrarError(mensaje);
       console.error('Error saving comprobante:', err);
     } finally {
       setLoading(false);
@@ -306,7 +404,9 @@ const ComprobanteFormPage = () => {
   return (
     <div>
       <PageHeader
-        title={isEditMode ? 'Editar Comprobante' : 'Nuevo Comprobante'}
+        title={isViewMode
+          ? `${getTipoComprobanteNombre(tipoComprobanteCargado)}`
+          : isEditMode ? 'Editar Comprobante' : 'Nuevo Comprobante'}
         icon="fa-solid fa-receipt"
         actions={
           <Link to="/comprobantes" className="btn-secondary-action">
@@ -316,37 +416,115 @@ const ComprobanteFormPage = () => {
         }
       />
 
-      {error && (
-        <div className="alert alert-danger alert-dismissible fade show" role="alert">
-          <Icon name="fa-solid fa-triangle-exclamation" />
-          {error}
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setError(null)}
-            aria-label="Close"
-          ></button>
+      {/* Información del comprobante en modo visualización */}
+      {isViewMode && tipoComprobanteCargado && (
+        <div className={`alert ${estaCancelado ? 'alert-secondary' : tipoComprobanteCargado === 'NC' ? 'alert-danger' : tipoComprobanteCargado === 'FC' ? 'alert-success' : 'alert-warning'} mb-4`}>
+          <div className="d-flex justify-content-between align-items-center flex-wrap">
+            <div className="d-flex align-items-center gap-3">
+              <span className={`badge ${estaCancelado ? 'bg-secondary' : getTipoComprobanteBadgeClass(tipoComprobanteCargado)} fs-6`}>
+                {getTipoComprobanteNombre(tipoComprobanteCargado)}
+              </span>
+              <span className="fw-bold fs-5">{numeroComprobanteCargado}</span>
+              {estaCancelado && (
+                <span className="badge bg-dark">CANCELADA</span>
+              )}
+            </div>
+            <div className="d-flex gap-4 text-muted">
+              <span><Icon name="fa-solid fa-calendar" /> {fechaCargada}</span>
+              {caeCargado && (
+                <span><Icon name="fa-solid fa-certificate" /> CAE: {caeCargado}</span>
+              )}
+            </div>
+          </div>
+          {/* Mostrar relación con otros comprobantes */}
+          {estaCancelado && notaCreditoNumero && (
+            <div className="mt-2 pt-2 border-top">
+              <Icon name="fa-solid fa-link" /> Cancelada por Nota de Crédito: <strong>{notaCreditoNumero}</strong>
+            </div>
+          )}
+          {tipoComprobanteCargado === 'NC' && comprobanteAsociadoNumero && (
+            <div className="mt-2 pt-2 border-top">
+              <Icon name="fa-solid fa-link" /> Cancela Factura: <strong>{comprobanteAsociadoNumero}</strong>
+            </div>
+          )}
         </div>
       )}
 
       <form onSubmit={handleSubmit}>
-        <GradientCard title="Datos del Cliente" icon="fa-solid fa-circle-user">
+        <GradientCard title="Tipo de Comprobante" icon="fa-solid fa-file-invoice">
+          <div className="row align-items-center">
+            <div className="col-md-3">
+              <FormGroup label="Modalidad" required>
+                <select
+                  className="form-select"
+                  value={esElectronica ? 'electronica' : 'manual'}
+                  onChange={(e) => {
+                    const isElectronica = e.target.value === 'electronica';
+                    setEsElectronica(isElectronica);
+                    if (isElectronica) {
+                      setEsPresupuesto(false);
+                    }
+                  }}
+                  disabled={isEditMode || isViewMode}
+                >
+                  <option value="electronica">Electrónica</option>
+                  <option value="manual">Manual</option>
+                </select>
+              </FormGroup>
+            </div>
+            {!esElectronica && (
+              <div className="col-md-3">
+                <div className="form-check mt-4">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    id="esPresupuesto"
+                    checked={esPresupuesto}
+                    onChange={(e) => setEsPresupuesto(e.target.checked)}
+                    disabled={isEditMode || isViewMode}
+                  />
+                  <label className="form-check-label" htmlFor="esPresupuesto">
+                    <strong>Es Presupuesto</strong>
+                  </label>
+                </div>
+              </div>
+            )}
+            <div className={!esElectronica ? 'col-md-6' : 'col-md-9'}>
+              <div className={`alert mb-0 ${esElectronica ? 'alert-success' : esPresupuesto ? 'alert-warning' : 'alert-danger'}`}>
+                <Icon name={esElectronica ? 'fa-solid fa-bolt' : esPresupuesto ? 'fa-solid fa-file-lines' : 'fa-solid fa-triangle-exclamation'} />
+                <strong>
+                  {esElectronica ? 'Factura Electrónica' : esPresupuesto ? 'Presupuesto' : 'Debe marcar Presupuesto'}
+                </strong>
+                <small className="d-block">
+                  {esElectronica ? 'Se solicitará CAE a AFIP' : esPresupuesto ? 'Sin CAE - Tipo PRE' : 'Seleccione el tilde para continuar'}
+                </small>
+              </div>
+            </div>
+          </div>
+        </GradientCard>
+
+        <GradientCard title="Datos del Cliente" icon="fa-solid fa-circle-user" className="mt-4">
           <div className="row">
             <div className="col-md-6">
               <FormGroup label="Cliente" required>
-                <select
-                  className="form-select"
-                  value={selectedClienteId || ''}
+                <Select<SelectOption>
+                  options={clienteOptions}
+                  value={selectedClienteOption}
                   onChange={handleClienteChange}
-                  required
-                >
-                  <option value="">Seleccione un cliente</option>
-                  {clientes.map((cliente) => (
-                    <option key={cliente.id} value={cliente.id}>
-                      {cliente.nombre} - {cliente.nroDocumento}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Buscar cliente..."
+                  isClearable
+                  isSearchable
+                  isDisabled={isViewMode}
+                  noOptionsMessage={() => "No se encontraron clientes"}
+                  loadingMessage={() => "Cargando..."}
+                  classNamePrefix="react-select"
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      minHeight: '38px',
+                    }),
+                  }}
+                />
               </FormGroup>
             </div>
 
@@ -405,6 +583,7 @@ const ComprobanteFormPage = () => {
                   className="form-select"
                   value={selectedVendedorId || ''}
                   onChange={handleVendedorChange}
+                  disabled={isViewMode}
                 >
                   <option value="">Sin vendedor</option>
                   {vendedores.map((vendedor) => (
@@ -429,8 +608,10 @@ const ComprobanteFormPage = () => {
                     className="form-control"
                     value={anticipo}
                     onChange={(e) => setAnticipo(parseFloat(e.target.value) || 0)}
+                    onFocus={(e) => e.target.select()}
                     min="0"
                     step="0.01"
+                    disabled={isViewMode}
                   />
                 </div>
                 <small className="form-text text-muted">Pago anticipado</small>
@@ -445,8 +626,10 @@ const ComprobanteFormPage = () => {
                     className="form-control"
                     value={contraEntrega}
                     onChange={(e) => setContraEntrega(parseFloat(e.target.value) || 0)}
+                    onFocus={(e) => e.target.select()}
                     min="0"
                     step="0.01"
+                    disabled={isViewMode}
                   />
                 </div>
                 <small className="form-text text-muted">Factura</small>
@@ -459,8 +642,10 @@ const ComprobanteFormPage = () => {
                   className="form-control"
                   value={cantidadCuotas}
                   onChange={(e) => setCantidadCuotas(parseInt(e.target.value) || 1)}
+                  onFocus={(e) => e.target.select()}
                   min="1"
                   max="60"
+                  disabled={isViewMode}
                 />
               </FormGroup>
             </div>
@@ -473,8 +658,10 @@ const ComprobanteFormPage = () => {
                     className="form-control"
                     value={valorCuota}
                     onChange={(e) => setValorCuota(parseFloat(e.target.value) || 0)}
+                    onFocus={(e) => e.target.select()}
                     min="0"
                     step="0.01"
+                    disabled={isViewMode}
                   />
                 </div>
               </FormGroup>
@@ -498,22 +685,54 @@ const ComprobanteFormPage = () => {
           </div>
         </GradientCard>
 
-        <GradientCard title="Items del Comprobante" icon="fa-solid fa-box" className="mt-4">
-          <div className="d-flex justify-content-end">
-            <GradientButton
-              className='btn-primary-action'
-              type="button"
-              icon="fa-solid fa-circle-plus"
-              onClick={handleAddItem}
-            >
-              Agregar Item
-            </GradientButton>
+        <GradientCard title="Gastos de Envío" icon="fa-solid fa-truck" className="mt-4">
+          <div className="row">
+            <div className="col-md-4">
+              <FormGroup label="Valor de Envío">
+                <div className="input-group">
+                  <span className="input-group-text">$</span>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={gastosEnvio}
+                    onChange={(e) => setGastosEnvio(parseFloat(e.target.value) || 0)}
+                    onFocus={(e) => e.target.select()}
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    disabled={isViewMode}
+                  />
+                </div>
+                <small className="form-text text-muted">Este valor se mostrará solo en la primera hoja del comprobante</small>
+              </FormGroup>
+            </div>
           </div>
+        </GradientCard>
+
+        <GradientCard title="Items del Comprobante" icon="fa-solid fa-box" className="mt-4">
+          {!isViewMode && (
+            <div className="d-flex justify-content-end">
+              <GradientButton
+                className='btn-primary-action'
+                type="button"
+                icon="fa-solid fa-circle-plus"
+                onClick={handleAddItem}
+              >
+                Agregar Item
+              </GradientButton>
+            </div>
+          )}
           {items.length === 0 ? (
-            <div className="alert alert-info mt-3 d-flex align-items-center justify-content-center" onClick={handleAddItem}>
-              No hay items agregados. Haga clic en
-              <Link to={"#"} onClick={handleAddItem}>Agregar Item</Link>
-              para comenzar.
+            <div className="alert alert-info mt-3 d-flex align-items-center justify-content-center" onClick={isViewMode ? undefined : handleAddItem}>
+              {isViewMode ? (
+                'No hay items en este comprobante.'
+              ) : (
+                <>
+                  No hay items agregados. Haga clic en
+                  <Link to={"#"} onClick={handleAddItem}>Agregar Item</Link>
+                  para comenzar.
+                </>
+              )}
             </div>
           ) : (
             <div className="table-responsive mt-3">
@@ -525,7 +744,7 @@ const ComprobanteFormPage = () => {
                     <th className="text-end">Cantidad</th>
                     <th className="text-end">Precio Unit.</th>
                     <th className="text-end">Subtotal</th>
-                    <th className="text-center">Acciones</th>
+                    {!isViewMode && <th className="text-center">Acciones</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -536,27 +755,29 @@ const ComprobanteFormPage = () => {
                       <td className="text-end">{item.cantidad}</td>
                       <td className="text-end">${item.precio_Unitario.toFixed(2)}</td>
                       <td className="text-end">${item.subtotal.toFixed(2)}</td>
-                      <td className="text-center">
-                        <IconButton
-                          className='me-2'
-                          icon="fa-solid fa-pen"
-                          title="Ver PDF"
-                          variant="primary"
-                          onClick={() => handleEditItem(item)}
-                        />
-                        <IconButton
-                          icon="fa-solid fa-trash"
-                          title="Eliminar"
-                          variant="danger"
-                          onClick={() => handleDeleteItem(item.tempId)}
-                        />
-                      </td>
+                      {!isViewMode && (
+                        <td className="text-center">
+                          <IconButton
+                            className='me-2'
+                            icon="fa-solid fa-pen"
+                            title="Editar"
+                            variant="primary"
+                            onClick={() => handleEditItem(item)}
+                          />
+                          <IconButton
+                            icon="fa-solid fa-trash"
+                            title="Eliminar"
+                            variant="danger"
+                            onClick={() => handleDeleteItem(item.tempId)}
+                          />
+                        </td>
+                      )}
                     </tr>
                   ))}
                   <tr className="table-primary">
                     <td colSpan={4} className="text-end"><strong>TOTAL ITEMS:</strong></td>
                     <td className="text-end"><strong>${calcularTotalItems().toFixed(2)}</strong></td>
-                    <td></td>
+                    {!isViewMode && <td></td>}
                   </tr>
                 </tbody>
               </table>
@@ -577,18 +798,20 @@ const ComprobanteFormPage = () => {
           )}
         </GradientCard>
 
-        <div className="d-flex gap-2 mt-4">
-          <GradientButton
-            type="submit"
-            icon="fa-solid fa-floppy-disk"
-            disabled={loading || items.length === 0}
-          >
-            {loading ? 'Guardando...' : isEditMode ? 'Actualizar' : 'Crear'}
-          </GradientButton>
-          <Link to="/comprobantes" className="btn-secondary-action">
-            Cancelar
-          </Link>
-        </div>
+        {!isViewMode && (
+          <div className="d-flex gap-2 mt-4">
+            <GradientButton
+              type="submit"
+              icon="fa-solid fa-floppy-disk"
+              disabled={loading || items.length === 0}
+            >
+              {loading ? 'Guardando...' : isEditMode ? 'Actualizar' : 'Crear'}
+            </GradientButton>
+            <Link to="/comprobantes" className="btn-secondary-action">
+              Cancelar
+            </Link>
+          </div>
+        )}
       </form>
 
       {showItemModal && (
@@ -609,19 +832,25 @@ const ComprobanteFormPage = () => {
               </div>
               <div className="modal-body">
                 <FormGroup label="Artículo" required>
-                  <select
-                    className="form-select"
-                    value={itemForm.articulo_Id}
+                  <Select<ArticuloOption>
+                    options={articuloOptions}
+                    value={selectedArticuloOption}
                     onChange={handleArticuloSelect}
-                    required
-                  >
-                    <option value="0">Seleccione un artículo</option>
-                    {articulos.map((articulo) => (
-                      <option key={articulo.id} value={articulo.id}>
-                        {articulo.codigo} - {articulo.descripcion} (${articulo.precio?.toFixed(2)})
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Buscar artículo..."
+                    isClearable
+                    isSearchable
+                    noOptionsMessage={() => "No se encontraron artículos"}
+                    loadingMessage={() => "Cargando..."}
+                    classNamePrefix="react-select"
+                    menuPortalTarget={document.body}
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        minHeight: '38px',
+                      }),
+                      menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                    }}
+                  />
                 </FormGroup>
 
                 <FormGroup label="Cantidad" required>
@@ -631,6 +860,7 @@ const ComprobanteFormPage = () => {
                     name="cantidad"
                     value={itemForm.cantidad}
                     onChange={handleItemFormChange}
+                    onFocus={(e) => e.target.select()}
                     min="1"
                     required
                   />
@@ -645,6 +875,7 @@ const ComprobanteFormPage = () => {
                       name="precio_Unitario"
                       value={itemForm.precio_Unitario}
                       onChange={handleItemFormChange}
+                      onFocus={(e) => e.target.select()}
                       min="0"
                       step="0.01"
                       required

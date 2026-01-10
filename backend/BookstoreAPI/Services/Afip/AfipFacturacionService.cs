@@ -30,9 +30,21 @@ namespace BookstoreAPI.Services.Afip
 
         public async Task<AfipCAEResponse> SolicitarCAEAsync(Comprobante comprobante, List<ComprobanteDetalle> detalles)
         {
+            // Por defecto usa Factura C (tipo 11) sin comprobante asociado
+            return await SolicitarCAEAsync(comprobante, detalles, 11, null);
+        }
+
+        public async Task<AfipCAEResponse> SolicitarCAEAsync(Comprobante comprobante, List<ComprobanteDetalle> detalles, int tipoComprobanteAfip)
+        {
+            // Sin comprobante asociado
+            return await SolicitarCAEAsync(comprobante, detalles, tipoComprobanteAfip, null);
+        }
+
+        public async Task<AfipCAEResponse> SolicitarCAEAsync(Comprobante comprobante, List<ComprobanteDetalle> detalles, int tipoComprobanteAfip, ComprobanteAsociadoInfo? comprobanteAsociado)
+        {
             try
             {
-                _logger.LogInformation("Iniciando solicitud de CAE para comprobante");
+                _logger.LogInformation("Iniciando solicitud de CAE para comprobante tipo {TipoComprobante}", tipoComprobanteAfip);
 
                 // Obtener ticket de acceso
                 var ticket = await _authService.GetTicketAccesoAsync();
@@ -44,8 +56,8 @@ namespace BookstoreAPI.Services.Afip
                     throw new Exception($"Cliente {comprobante.Cliente_Id} no encontrado");
                 }
 
-                // Determinar tipo de comprobante y documento
-                int tipoComprobante = DeterminarTipoComprobante("CONSUMIDOR FINAL");
+                // Usar el tipo de comprobante pasado como parámetro
+                int tipoComprobante = tipoComprobanteAfip;
                 int tipoDocumento = DeterminarTipoDocumento(cliente.TipoDocumento);
 
                 // Obtener último comprobante autorizado
@@ -102,40 +114,58 @@ namespace BookstoreAPI.Services.Afip
                */
 
 
+                // Crear el detalle del request
+                var detRequest = new FECAEDetRequest
+                {
+                    Concepto = 1,
+                    DocTipo = tipoDocumento,
+                    DocNro = cliente.NroDocumento,
+                    CbteDesde = numeroComprobante,
+                    CbteHasta = numeroComprobante,
+                    CbteFch = DateTime.Now.ToString("yyyyMMdd"),
+                    ImpTotal = total.ToString("F2", CultureInfo.InvariantCulture),
+                    ImpTotConc = 0m,
+                    ImpNeto = total.ToString("F2", CultureInfo.InvariantCulture),
+                    ImpOpEx = 0m,
+                    ImpTrib = 0m,
+                    ImpIVA = 0m,
+                    MonId = "PES",
+                    MonCotiz = 1m,
+                    CondicionIVAReceptorId = 5
+                };
+
+                // Agregar comprobante asociado si existe (para Notas de Crédito/Débito)
+                if (comprobanteAsociado != null)
+                {
+                    _logger.LogInformation("Agregando comprobante asociado: Tipo={Tipo}, PtoVta={PtoVta}, Nro={Nro}",
+                        comprobanteAsociado.Tipo, comprobanteAsociado.PuntoVenta, comprobanteAsociado.Numero);
+
+                    detRequest.CbtesAsoc = new List<CbteAsoc>
+                    {
+                        new CbteAsoc
+                        {
+                            Tipo = comprobanteAsociado.Tipo,
+                            PtoVta = comprobanteAsociado.PuntoVenta,
+                            Nro = comprobanteAsociado.Numero,
+                            CbteFch = comprobanteAsociado.Fecha.ToString("yyyyMMdd")
+                        }
+                    };
+                }
+
                 var env = new Envelope
                 {
                     Body = new Body
                     {
                         FECAESolicitar = new FECAESolicitar
                         {
-                            Auth = new Auth { Token = ticket.Token , 
+                            Auth = new Auth { Token = ticket.Token ,
                                 Sign = ticket.Sign, Cuit = _config.CUIT },
                             FeCAEReq = new FeCAEReq
                             {
-                                FeCabReq = new FeCabReq { CantReg = 1, PtoVta = _config.PuntoVenta, CbteTipo = 11 },
+                                FeCabReq = new FeCabReq { CantReg = 1, PtoVta = _config.PuntoVenta, CbteTipo = tipoComprobante },
                                 FeDetReq = new FeDetReq
                                 {
-                                    FECAEDetRequest = new System.Collections.Generic.List<FECAEDetRequest>
-                            {
-                                new FECAEDetRequest
-                                {
-                                    Concepto = 1,
-                                    DocTipo = tipoDocumento,
-                                    DocNro = cliente.NroDocumento,
-                                    CbteDesde = numeroComprobante,
-                                    CbteHasta = numeroComprobante,
-                                    CbteFch = DateTime.Now.ToString("yyyyMMdd"),
-                                    ImpTotal = total.ToString("F2", CultureInfo.InvariantCulture),
-                                    ImpTotConc = 0m,
-                                    ImpNeto = total.ToString("F2", CultureInfo.InvariantCulture),
-                                    ImpOpEx = 0m,
-                                    ImpTrib = 0m,
-                                    ImpIVA = 0m,
-                                    MonId = "PES",
-                                    MonCotiz = 1m,
-                                    CondicionIVAReceptorId = 5
-                                }
-                            }
+                                    FECAEDetRequest = new List<FECAEDetRequest> { detRequest }
                                 }
                             }
                         }

@@ -19,6 +19,18 @@ namespace BookstoreAPI.DTOs
         public decimal? ValorCuota { get; set; }
         public int? Vendedor_Id { get; set; }
         public string? VendedorNombre { get; set; }
+        public decimal? GastosEnvio { get; set; }
+        public bool EsElectronica { get; set; }
+        public bool EsPresupuesto { get; set; }
+
+        // Relación con comprobante asociado
+        public int? ComprobanteAsociado_Id { get; set; }
+        public string? ComprobanteAsociadoNumero { get; set; }  // Para NC: número de la factura
+
+        // Para Facturas: indica si fue cancelada por una NC
+        public bool EstaCancelado { get; set; }
+        public string? NotaCreditoNumero { get; set; }  // Número de la NC que canceló esta factura
+
         public List<ComprobanteDetalleConArticuloDto> Detalles { get; set; } = new List<ComprobanteDetalleConArticuloDto>();
     }
 

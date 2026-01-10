@@ -16,6 +16,18 @@ export interface Comprobante {
   valorCuota?: number;
   vendedor_Id?: number;
   vendedorNombre?: string;
+  gastosEnvio?: number;
+  esElectronica: boolean;
+  esPresupuesto: boolean;
+
+  // Relación con comprobante asociado
+  comprobanteAsociado_Id?: number;
+  comprobanteAsociadoNumero?: string;  // Para NC: número de la factura
+
+  // Para Facturas: indica si fue cancelada por una NC
+  estaCancelado: boolean;
+  notaCreditoNumero?: string;  // Número de la NC que canceló esta factura
+
   detalles: ComprobanteDetalle[];
 }
 
@@ -44,6 +56,9 @@ export interface CreateComprobanteDto {
   cuotas?: number;
   valorCuota?: number;
   vendedor_Id?: number;
+  gastosEnvio?: number;
+  esElectronica?: boolean;
+  esPresupuesto?: boolean;
   detalles: ComprobanteDetalleDto[];
 }
 
@@ -62,6 +77,9 @@ export interface UpdateComprobanteDto {
   cuotas?: number;
   valorCuota?: number;
   vendedor_Id?: number;
+  gastosEnvio?: number;
+  esElectronica?: boolean;
+  esPresupuesto?: boolean;
   detalles: ComprobanteDetalleDto[];
 }
 
@@ -70,4 +88,21 @@ export interface ComprobanteDetalleDto {
   cantidad: number;
   precio_Unitario: number;
   subtotal: number;
+}
+
+export interface ArticuloVendidoZonaItem {
+  vendedorInicial: string;
+  codigoCliente: string;
+  razonSocial: string;
+  direccion: string;
+  direccionComercial: string;
+  descripcionArticulo: string;
+  fechaFactura: string;
+  numeroFactura: string;
+}
+
+export interface ArticulosVendidosZonaReporte {
+  zonaId?: number;
+  zonaNombre: string;
+  items: ArticuloVendidoZonaItem[];
 }

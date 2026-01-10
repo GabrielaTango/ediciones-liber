@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { referenceService } from '../services/referenceService';
 import type { SubZona, CreateSubZonaDto, UpdateSubZonaDto, Provincia } from '../types/references';
 import { PageHeader } from '../components/PageHeader';
@@ -10,6 +10,16 @@ const SubZonasPage = () => {
   const [provincias, setProvincias] = useState<Provincia[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filtro, setFiltro] = useState('');
+
+  const subzonasFiltradas = useMemo(() => {
+    if (!filtro.trim()) return subzonas;
+    const busqueda = filtro.toLowerCase();
+    return subzonas.filter(s =>
+      (s.codigo?.toLowerCase() || '').includes(busqueda) ||
+      (s.descripcion?.toLowerCase() || '').includes(busqueda)
+    );
+  }, [subzonas, filtro]);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [subzonaToDelete, setSubZonaToDelete] = useState<SubZona | null>(null);
@@ -165,6 +175,23 @@ const SubZonasPage = () => {
 
       {error && <div className="alert alert-danger">{error}</div>}
 
+      {/* Filtro */}
+      <div className="card mb-3">
+        <div className="card-body py-2">
+          <div className="row">
+            <div className="col-md-4">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Buscar por código o descripción..."
+                value={filtro}
+                onChange={(e) => setFiltro(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {loading ? (
         <div className="text-center py-5">
           <div className="spinner-gradient" />
@@ -185,7 +212,7 @@ const SubZonasPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {subzonas.map((subzona) => (
+                  {subzonasFiltradas.map((subzona) => (
                     <tr key={subzona.id}>
                       <td>{subzona.codigo || '-'}</td>
                       <td>{subzona.descripcion || '-'}</td>
