@@ -41,6 +41,7 @@ namespace BookstoreAPI.Repositories
                     c.GastosEnvio,
                     c.EsElectronica,
                     c.EsPresupuesto,
+                    c.estado AS Estado,
                     c.comprobante_asociado_id AS ComprobanteAsociado_Id,
                     ca.numeroComprobante AS ComprobanteAsociadoNumero,
                     CASE WHEN nc.id IS NOT NULL THEN 1 ELSE 0 END AS EstaCancelado,
@@ -65,7 +66,7 @@ namespace BookstoreAPI.Repositories
         }
 
         public async Task<IEnumerable<ComprobanteConDetallesDto>> GetAllFilteredAsync(
-            int? zonaId, int? clienteId, string? tipoComprobante, DateTime? fechaDesde, DateTime? fechaHasta)
+            int? zonaId, int? clienteId, string? tipoComprobante, DateTime? fechaDesde, DateTime? fechaHasta, int? vendedorId = null)
         {
             var query = @"
                 SELECT
@@ -89,6 +90,7 @@ namespace BookstoreAPI.Repositories
                     c.GastosEnvio,
                     c.EsElectronica,
                     c.EsPresupuesto,
+                    c.estado AS Estado,
                     c.comprobante_asociado_id AS ComprobanteAsociado_Id,
                     ca.numeroComprobante AS ComprobanteAsociadoNumero,
                     CASE WHEN nc_check.id IS NOT NULL THEN 1 ELSE 0 END AS EstaCancelado,
@@ -133,6 +135,12 @@ namespace BookstoreAPI.Repositories
                 parameters.Add("FechaHasta", fechaHasta.Value.Date);
             }
 
+            if (vendedorId.HasValue)
+            {
+                query += " AND c.vendedor_id = @VendedorId";
+                parameters.Add("VendedorId", vendedorId.Value);
+            }
+
             query += " ORDER BY c.fecha DESC, c.id DESC";
 
             using var connection = _context.CreateConnection();
@@ -171,6 +179,7 @@ namespace BookstoreAPI.Repositories
                     c.GastosEnvio,
                     c.EsElectronica,
                     c.EsPresupuesto,
+                    c.estado AS Estado,
                     c.comprobante_asociado_id AS ComprobanteAsociado_Id,
                     ca.numeroComprobante AS ComprobanteAsociadoNumero,
                     CASE WHEN nc.id IS NOT NULL THEN 1 ELSE 0 END AS EstaCancelado,
@@ -214,7 +223,8 @@ namespace BookstoreAPI.Repositories
                     vendedor_id AS Vendedor_Id,
                     GastosEnvio,
                     EsElectronica,
-                    EsPresupuesto
+                    EsPresupuesto,
+                    estado AS Estado
                 FROM comprobantes
                 WHERE id = @Id";
 
@@ -676,6 +686,26 @@ namespace BookstoreAPI.Repositories
             }
 
             return $"{puntoVenta}-{siguienteNumero:D8}";
+        }
+
+        public async Task UpdateEstadoAsync(int comprobanteId, string estado)
+        {
+            const string query = "UPDATE comprobantes SET estado = @Estado WHERE id = @Id";
+            using var connection = _context.CreateConnection();
+            await connection.ExecuteAsync(query, new { Id = comprobanteId, Estado = estado });
+        }
+
+        public async Task<decimal> GetUltimoGastoEnvioAsync()
+        {
+            const string query = @"
+                SELECT COALESCE(GastosEnvio, 0)
+                FROM comprobantes
+                WHERE GastosEnvio IS NOT NULL AND GastosEnvio > 0
+                ORDER BY id DESC
+                LIMIT 1";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryFirstOrDefaultAsync<decimal>(query);
         }
 
         public async Task<ArticulosVendidosZonaReporteDto> GetArticulosVendidosPorZonaAsync(int? zonaId)

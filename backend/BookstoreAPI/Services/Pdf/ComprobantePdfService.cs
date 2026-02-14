@@ -269,14 +269,7 @@ namespace BookstoreAPI.Services.Pdf
                     });
                 });
 
-                // Paginación
-                column.Item().PaddingTop(10).AlignCenter().Text(text =>
-                {
-                    text.Span("Página ");
-                    text.CurrentPageNumber();
-                    text.Span(" de ");
-                    text.TotalPages();
-                });
+
             });
         }
 
@@ -356,6 +349,40 @@ namespace BookstoreAPI.Services.Pdf
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al generar PDF completo del comprobante con cupones");
+                throw;
+            }
+        }
+
+        public byte[] GenerarLotePdf(List<(Comprobante comprobante, Cliente cliente, List<ComprobanteDetalle> detalles)> lote)
+        {
+            try
+            {
+                var document = Document.Create(container =>
+                {
+                    foreach (var item in lote)
+                    {
+                        for (int copia = 1; copia <= 3; copia++)
+                        {
+                            var esPrimeraHoja = copia == 1;
+                            container.Page(page =>
+                            {
+                                page.Size(PageSizes.A4);
+                                page.Margin(2, Unit.Centimetre);
+                                page.DefaultTextStyle(x => x.FontSize(10));
+
+                                page.Header().Element(h => ComposeHeader(h, item.comprobante));
+                                page.Content().Element(c => ComposeContent(c, item.comprobante, item.cliente, item.detalles));
+                                page.Footer().Element(f => ComposeFooter(f, item.comprobante, item.cliente, item.detalles, esPrimeraHoja));
+                            });
+                        }
+                    }
+                });
+
+                return document.GeneratePdf();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al generar PDF de lote de comprobantes");
                 throw;
             }
         }

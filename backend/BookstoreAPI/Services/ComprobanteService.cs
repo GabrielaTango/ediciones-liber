@@ -97,8 +97,8 @@ namespace BookstoreAPI.Services
             }
             else
             {
-                // Presupuesto: generar número sin CAE
-                var puntoVenta = _config.Value.PuntoVenta.ToString("D4");
+                // Presupuesto: generar número sin CAE (punto de venta fijo 00000)
+                var puntoVenta = "00000";
                 comprobante.NumeroComprobante = await _comprobanteRepository.GetSiguienteNumeroPresupuestoAsync(puntoVenta);
                 comprobante.TipoComprobante = "PRE";
                 comprobante.CAE = null;

@@ -23,5 +23,8 @@ namespace BookstoreAPI.Models
 
         // Relación con comprobante asociado (para NC: ID de la factura que cancela)
         public int? ComprobanteAsociado_Id { get; set; }
+
+        // Estado del comprobante: PEN (Pendiente), PAG (Pagada), CAN (Cancelado)
+        public string? Estado { get; set; } = "PEN";
     }
 }

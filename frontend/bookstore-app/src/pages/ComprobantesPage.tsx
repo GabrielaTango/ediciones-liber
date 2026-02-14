@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import Select from 'react-select';
 import { comprobanteService, type ComprobanteFilters } from '../services/comprobanteService';
 import { referenceService } from '../services/referenceService';
 import { clienteService } from '../services/clienteService';
 import type { Comprobante } from '../types/comprobante';
-import type { Zona } from '../types/references';
+import type { Zona, Vendedor } from '../types/references';
 import type { Cliente } from '../types/cliente';
 import { showSuccessAlert, showErrorAlert, showConfirmDialog } from '../utils/sweetalert';
 import { PageHeader } from '../components/PageHeader';
@@ -18,6 +18,7 @@ interface SelectOption {
 }
 
 const ComprobantesPage = () => {
+  const [searchParams] = useSearchParams();
   const [comprobantes, setComprobantes] = useState<Comprobante[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,27 +26,44 @@ const ComprobantesPage = () => {
   // Data para filtros
   const [zonas, setZonas] = useState<Zona[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
 
   // Estados de filtros
   const [selectedZona, setSelectedZona] = useState<SelectOption | null>(null);
   const [selectedCliente, setSelectedCliente] = useState<SelectOption | null>(null);
+  const [selectedVendedor, setSelectedVendedor] = useState<SelectOption | null>(null);
   const [tipoComprobante, setTipoComprobante] = useState<string>('');
-  const [fechaDesde, setFechaDesde] = useState<string>('');
-  const [fechaHasta, setFechaHasta] = useState<string>('');
+  const [fechaDesde, setFechaDesde] = useState<string>(searchParams.get('fechaDesde') || '');
+  const [fechaHasta, setFechaHasta] = useState<string>(searchParams.get('fechaHasta') || '');
+  const [activeFilters, setActiveFilters] = useState<ComprobanteFilters | null>(null);
 
   useEffect(() => {
-    loadComprobantes();
+    const initialFilters: ComprobanteFilters = {};
+    const paramFechaDesde = searchParams.get('fechaDesde');
+    const paramFechaHasta = searchParams.get('fechaHasta');
+    if (paramFechaDesde) initialFilters.fechaDesde = paramFechaDesde;
+    if (paramFechaHasta) initialFilters.fechaHasta = paramFechaHasta;
+
+    const hasInitialFilters = Object.keys(initialFilters).length > 0;
+    if (hasInitialFilters) {
+      setActiveFilters(initialFilters);
+      loadComprobantes(initialFilters);
+    } else {
+      loadComprobantes();
+    }
     loadFilterData();
   }, []);
 
   const loadFilterData = async () => {
     try {
-      const [zonasData, clientesData] = await Promise.all([
+      const [zonasData, clientesData, vendedoresData] = await Promise.all([
         referenceService.getZonas(),
-        clienteService.getAll()
+        clienteService.getAll(),
+        referenceService.getVendedores()
       ]);
       setZonas(zonasData);
       setClientes(clientesData);
+      setVendedores(vendedoresData);
     } catch (err) {
       console.error('Error loading filter data:', err);
     }
@@ -69,19 +87,37 @@ const ComprobantesPage = () => {
     const filters: ComprobanteFilters = {};
     if (selectedZona) filters.zonaId = selectedZona.value;
     if (selectedCliente) filters.clienteId = selectedCliente.value;
+    if (selectedVendedor) filters.vendedorId = selectedVendedor.value;
     if (tipoComprobante) filters.tipoComprobante = tipoComprobante;
     if (fechaDesde) filters.fechaDesde = fechaDesde;
     if (fechaHasta) filters.fechaHasta = fechaHasta;
-    loadComprobantes(filters);
+
+    const hasFilters = Object.keys(filters).length > 0;
+    setActiveFilters(hasFilters ? filters : null);
+    loadComprobantes(hasFilters ? filters : undefined);
   };
 
   const handleClearFilters = () => {
     setSelectedZona(null);
     setSelectedCliente(null);
+    setSelectedVendedor(null);
     setTipoComprobante('');
     setFechaDesde('');
     setFechaHasta('');
+    setActiveFilters(null);
     loadComprobantes();
+  };
+
+  const handlePrintAll = () => {
+    if (activeFilters) {
+      comprobanteService.openBatchPdf(activeFilters);
+    }
+  };
+
+  const handlePrintAllCupones = () => {
+    if (activeFilters) {
+      comprobanteService.openBatchCuponesPdf(activeFilters);
+    }
   };
 
   // Opciones para React Select
@@ -96,6 +132,12 @@ const ComprobantesPage = () => {
       value: c.id,
       label: `${c.codigo || ''} - ${c.nombre}`
     })), [clientes]);
+
+  const vendedorOptions = useMemo<SelectOption[]>(() =>
+    vendedores.map(v => ({
+      value: v.id,
+      label: v.descripcion || v.codigo || `Vendedor ${v.id}`
+    })), [vendedores]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -144,9 +186,9 @@ const ComprobantesPage = () => {
       {/* Sección de Filtros */}
       <div className="card mb-3">
         <div className="card-body">
-          {/* Fila superior: Zona y Cliente */}
+          {/* Fila superior: Zona, Vendedor y Cliente */}
           <div className="row g-3 mb-3">
-            <div className="col-md-4">
+            <div className="col-md-3">
               <label className="form-label">Zona</label>
               <Select
                 isClearable
@@ -156,7 +198,17 @@ const ComprobantesPage = () => {
                 onChange={(option) => setSelectedZona(option)}
               />
             </div>
-            <div className="col-md-8">
+            <div className="col-md-3">
+              <label className="form-label">Vendedor</label>
+              <Select
+                isClearable
+                placeholder="Seleccionar vendedor..."
+                options={vendedorOptions}
+                value={selectedVendedor}
+                onChange={(option) => setSelectedVendedor(option)}
+              />
+            </div>
+            <div className="col-md-6">
               <label className="form-label">Cliente</label>
               <Select
                 isClearable
@@ -200,7 +252,7 @@ const ComprobantesPage = () => {
                 onChange={(e) => setFechaHasta(e.target.value)}
               />
             </div>
-            <div className="col-md-2 d-flex align-items-end gap-2">
+            <div className="col-md-4 d-flex align-items-end gap-2">
               <button
                 className="btn btn-primary"
                 onClick={handleFilter}
@@ -214,6 +266,22 @@ const ComprobantesPage = () => {
                 title="Limpiar filtros"
               >
                 <i className="fa-solid fa-times"></i>
+              </button>
+              <button
+                className="btn btn-success"
+                onClick={handlePrintAll}
+                disabled={!activeFilters}
+                title={activeFilters ? "Imprimir todos los comprobantes filtrados" : "Aplique filtros para imprimir en lote"}
+              >
+                <i className="fa-solid fa-print"></i>
+              </button>
+              <button
+                className="btn btn-warning"
+                onClick={handlePrintAllCupones}
+                disabled={!activeFilters}
+                title={activeFilters ? "Imprimir cupones de todos los comprobantes filtrados" : "Aplique filtros para imprimir cupones en lote"}
+              >
+                <i className="fa-solid fa-list"></i>
               </button>
             </div>
           </div>
@@ -237,6 +305,7 @@ const ComprobantesPage = () => {
                     <th>Cliente</th>
                     <th>Vendedor</th>
                     <th className="text-end">Total</th>
+                    <th className="text-center">Estado</th>
                     <th className="text-center">Acciones</th>
                   </tr>
                 </thead>
@@ -256,6 +325,17 @@ const ComprobantesPage = () => {
                       <td>{comprobante.clienteNombre || '-'}</td>
                       <td>{comprobante.vendedorNombre || '-'}</td>
                       <td className="text-end">${comprobante.total.toFixed(2)}</td>
+                      <td className="text-center">
+                        {comprobante.estado === 'PAG' && (
+                          <span className="badge bg-success">Pagada</span>
+                        )}
+                        {comprobante.estado === 'CAN' && (
+                          <span className="badge bg-danger">Cancelado</span>
+                        )}
+                        {(!comprobante.estado || comprobante.estado === 'PEN') && (
+                          <span className="badge bg-warning text-dark">Pendiente</span>
+                        )}
+                      </td>
                       <td className="text-center">
                         <IconButton
                           icon="fa-solid fa-print"

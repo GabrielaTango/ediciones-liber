@@ -45,15 +45,16 @@ namespace BookstoreAPI.Controllers
             [FromQuery] int? clienteId,
             [FromQuery] string? tipoComprobante,
             [FromQuery] DateTime? fechaDesde,
-            [FromQuery] DateTime? fechaHasta)
+            [FromQuery] DateTime? fechaHasta,
+            [FromQuery] int? vendedorId)
         {
             try
             {
                 // Si hay algún filtro, usar el método filtrado
-                if (zonaId.HasValue || clienteId.HasValue || !string.IsNullOrWhiteSpace(tipoComprobante) || fechaDesde.HasValue || fechaHasta.HasValue)
+                if (zonaId.HasValue || clienteId.HasValue || !string.IsNullOrWhiteSpace(tipoComprobante) || fechaDesde.HasValue || fechaHasta.HasValue || vendedorId.HasValue)
                 {
                     var comprobantesFiltrados = await _comprobanteRepository.GetAllFilteredAsync(
-                        zonaId, clienteId, tipoComprobante, fechaDesde, fechaHasta);
+                        zonaId, clienteId, tipoComprobante, fechaDesde, fechaHasta, vendedorId);
                     return Ok(comprobantesFiltrados);
                 }
 
@@ -154,6 +155,35 @@ namespace BookstoreAPI.Controllers
             }
         }
 
+        [HttpPost("{id}/cancelar-deuda")]
+        public async Task<IActionResult> CancelarDeuda(int id)
+        {
+            try
+            {
+                // Obtener el comprobante
+                var comprobante = await _comprobanteRepository.GetByIdAsync(id);
+                if (comprobante == null)
+                    return NotFound(new { message = $"Comprobante con ID {id} no encontrado" });
+
+                // Validar que esté en estado PEN
+                if (comprobante.Estado != "PEN")
+                    return BadRequest(new { message = $"Solo se puede cancelar la deuda de comprobantes en estado Pendiente. Estado actual: {comprobante.Estado}" });
+
+                // Eliminar cuotas pendientes (no pagadas)
+                await _cuotaRepository.DeletePendientesByComprobanteIdAsync(id);
+
+                // Actualizar estado del comprobante a CAN
+                await _comprobanteRepository.UpdateEstadoAsync(id, "CAN");
+
+                return Ok(new { message = "Deuda cancelada exitosamente" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al cancelar deuda del comprobante {Id}", id);
+                return StatusCode(500, new { message = "Error al cancelar deuda del comprobante", error = ex.Message });
+            }
+        }
+
         [HttpGet("{id}/pdf")]
         public async Task<IActionResult> GetPdf(int id)
         {
@@ -217,6 +247,21 @@ namespace BookstoreAPI.Controllers
             {
                 _logger.LogError(ex, "Error al generar PDF de cupones del comprobante {Id}", id);
                 return StatusCode(500, new { message = "Error al generar PDF de cupones", error = ex.Message });
+            }
+        }
+
+        [HttpGet("ultimo-gasto-envio")]
+        public async Task<IActionResult> GetUltimoGastoEnvio()
+        {
+            try
+            {
+                var gastoEnvio = await _comprobanteRepository.GetUltimoGastoEnvioAsync();
+                return Ok(new { gastoEnvio });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener último gasto de envío");
+                return StatusCode(500, new { message = "Error al obtener último gasto de envío" });
             }
         }
 
@@ -324,6 +369,119 @@ namespace BookstoreAPI.Controllers
             {
                 _logger.LogError(ex, "Error al generar PDF completo del comprobante {Id}", id);
                 return StatusCode(500, new { message = "Error al generar PDF completo del comprobante", error = ex.Message });
+            }
+        }
+
+        [HttpGet("batch-pdf")]
+        public async Task<IActionResult> GetBatchPdf(
+            [FromQuery] int? zonaId,
+            [FromQuery] int? clienteId,
+            [FromQuery] string? tipoComprobante,
+            [FromQuery] DateTime? fechaDesde,
+            [FromQuery] DateTime? fechaHasta,
+            [FromQuery] int? vendedorId)
+        {
+            try
+            {
+                if (!zonaId.HasValue && !clienteId.HasValue && string.IsNullOrWhiteSpace(tipoComprobante) && !fechaDesde.HasValue && !fechaHasta.HasValue && !vendedorId.HasValue)
+                    return BadRequest(new { message = "Debe aplicar al menos un filtro para imprimir en lote" });
+
+                var comprobantesFiltrados = await _comprobanteRepository.GetAllFilteredAsync(
+                    zonaId, clienteId, tipoComprobante, fechaDesde, fechaHasta, vendedorId);
+
+                var lista = comprobantesFiltrados.ToList();
+                if (!lista.Any())
+                    return NotFound(new { message = "No se encontraron comprobantes con los filtros aplicados" });
+
+                var lote = new List<(Models.Comprobante comprobante, Models.Cliente cliente, List<Models.ComprobanteDetalle> detalles)>();
+
+                foreach (var comp in lista)
+                {
+                    var comprobante = await _comprobanteRepository.GetComprobanteByIdAsync(comp.Id);
+                    if (comprobante == null) continue;
+
+                    var cliente = await _clienteRepository.GetByIdAsync(comprobante.Cliente_Id);
+                    if (cliente == null) continue;
+
+                    var detalles = await _comprobanteRepository.GetDetallesByComprobanteIdAsync(comp.Id);
+                    lote.Add((comprobante, cliente, detalles));
+                }
+
+                if (!lote.Any())
+                    return NotFound(new { message = "No se pudieron obtener los datos de los comprobantes" });
+
+                lote = lote.OrderBy(x => x.comprobante.TipoComprobante switch
+                {
+                    "PRE" => 0,
+                    "FC" => 1,
+                    _ => 2
+                }).ToList();
+
+                var pdfBytes = _pdfService.GenerarLotePdf(lote);
+                return File(pdfBytes, "application/pdf");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al generar PDF en lote de comprobantes");
+                return StatusCode(500, new { message = "Error al generar PDF en lote", error = ex.Message });
+            }
+        }
+
+        [HttpGet("batch-cupones-pdf")]
+        public async Task<IActionResult> GetBatchCuponesPdf(
+            [FromQuery] int? zonaId,
+            [FromQuery] int? clienteId,
+            [FromQuery] string? tipoComprobante,
+            [FromQuery] DateTime? fechaDesde,
+            [FromQuery] DateTime? fechaHasta,
+            [FromQuery] int? vendedorId)
+        {
+            try
+            {
+                if (!zonaId.HasValue && !clienteId.HasValue && string.IsNullOrWhiteSpace(tipoComprobante) && !fechaDesde.HasValue && !fechaHasta.HasValue && !vendedorId.HasValue)
+                    return BadRequest(new { message = "Debe aplicar al menos un filtro para imprimir cupones en lote" });
+
+                var comprobantesFiltrados = await _comprobanteRepository.GetAllFilteredAsync(
+                    zonaId, clienteId, tipoComprobante, fechaDesde, fechaHasta, vendedorId);
+
+                var lista = comprobantesFiltrados.ToList();
+                if (!lista.Any())
+                    return NotFound(new { message = "No se encontraron comprobantes con los filtros aplicados" });
+
+                var lote = new List<(Models.Comprobante comprobante, Models.Cliente cliente, List<Models.Cuota> cuotas)>();
+
+                foreach (var comp in lista)
+                {
+                    var comprobante = await _comprobanteRepository.GetComprobanteByIdAsync(comp.Id);
+                    if (comprobante == null) continue;
+
+                    var cliente = await _clienteRepository.GetByIdAsync(comprobante.Cliente_Id);
+                    if (cliente == null) continue;
+
+                    var cuotas = await _cuotaRepository.GetByComprobanteIdAsync(comp.Id);
+                    var listaCuotas = cuotas.ToList();
+
+                    if (listaCuotas.Any())
+                        lote.Add((comprobante, cliente, listaCuotas));
+                }
+
+                if (!lote.Any())
+                    return NotFound(new { message = "No se encontraron cupones para los comprobantes filtrados" });
+
+                lote = lote.OrderBy(x => x.comprobante.TipoComprobante switch
+                {
+                    "PRE" => 0,
+                    "FC" => 1,
+                    _ => 2
+                }).ToList();
+
+                var pdfBytes = _cuotaPdfService.GenerarLoteCuponesPdf(lote);
+                return File(pdfBytes, "application/pdf");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al generar PDF de cupones en lote");
+                return StatusCode(500, new { message = "Error al generar PDF de cupones en lote", error = ex.Message });
             }
         }
 

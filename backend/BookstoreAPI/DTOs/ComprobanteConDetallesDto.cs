@@ -23,6 +23,9 @@ namespace BookstoreAPI.DTOs
         public bool EsElectronica { get; set; }
         public bool EsPresupuesto { get; set; }
 
+        // Estado del comprobante: PEN (Pendiente), PAG (Pagada), CAN (Cancelado)
+        public string? Estado { get; set; }
+
         // Relación con comprobante asociado
         public int? ComprobanteAsociado_Id { get; set; }
         public string? ComprobanteAsociadoNumero { get; set; }  // Para NC: número de la factura

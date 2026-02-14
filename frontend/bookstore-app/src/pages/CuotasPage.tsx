@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { cuotaService } from '../services/cuotaService';
 import { referenceService } from '../services/referenceService';
 import type { CuotaListado } from '../types/cuota';
@@ -32,11 +32,10 @@ const CuotasPage = () => {
   const [anio, setAnio] = useState<number | ''>(new Date().getFullYear());
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState<string>('');
+  const [mostrarPagadas, setMostrarPagadas] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Generar lista de años (desde 2020 hasta el año actual + 1)
-  const anioActual = new Date().getFullYear();
-  const anios = Array.from({ length: anioActual - 2020 + 2 }, (_, i) => 2020 + i);
+  const [anioInput, setAnioInput] = useState<string>(anio.toString());
 
   useEffect(() => {
     loadZonas();
@@ -129,9 +128,9 @@ const CuotasPage = () => {
       setEditValue('');
 
       // Mover al siguiente input
-      const currentIndex = cuotas.findIndex(c => c.id === cuota.id);
-      if (currentIndex < cuotas.length - 1) {
-        const nextCuota = cuotas[currentIndex + 1];
+      const currentIndex = cuotasFiltradas.findIndex(c => c.id === cuota.id);
+      if (currentIndex < cuotasFiltradas.length - 1) {
+        const nextCuota = cuotasFiltradas[currentIndex + 1];
         setTimeout(() => handleFocus(nextCuota), 50);
       }
     } else if (e.key === 'Escape') {
@@ -139,6 +138,11 @@ const CuotasPage = () => {
       setEditValue('');
     }
   };
+
+  const cuotasFiltradas = useMemo(() => {
+    if (mostrarPagadas) return cuotas;
+    return cuotas.filter(c => c.estado !== 'PAG' && c.importePagado < c.importe);
+  }, [cuotas, mostrarPagadas]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-AR', {
@@ -218,20 +222,25 @@ const CuotasPage = () => {
             </div>
             <div className="col-md-2 mb-3 mb-md-0">
               <label className="form-label">Año</label>
-              <select
-                className="form-select"
-                value={anio}
-                onChange={(e) => setAnio(e.target.value ? parseInt(e.target.value, 10) : '')}
-              >
-                <option value="">Todos</option>
-                {anios.map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-              </select>
+              <input
+                type="number"
+                className="form-control"
+                placeholder="Ej: 2026"
+                value={anioInput}
+                onChange={(e) => setAnioInput(e.target.value)}
+                onBlur={() => {
+                  const parsed = parseInt(anioInput, 10);
+                  setAnio(parsed && parsed >= 2000 ? parsed : '');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const parsed = parseInt(anioInput, 10);
+                    setAnio(parsed && parsed >= 2000 ? parsed : '');
+                  }
+                }}
+              />
             </div>
-            <div className="col-md-3">
+            <div className="col-md-2">
               <GradientButton
                 icon={loading ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-sync'}
                 onClick={loadCuotas}
@@ -239,6 +248,20 @@ const CuotasPage = () => {
               >
                 {loading ? 'Cargando...' : 'Actualizar'}
               </GradientButton>
+            </div>
+            <div className="col-md-3 d-flex align-items-end">
+              <div className="form-check">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="mostrarPagadas"
+                  checked={mostrarPagadas}
+                  onChange={(e) => setMostrarPagadas(e.target.checked)}
+                />
+                <label className="form-check-label" htmlFor="mostrarPagadas">
+                  Mostrar pagadas
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -267,14 +290,14 @@ const CuotasPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {cuotas.length === 0 ? (
+                  {cuotasFiltradas.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="text-center py-4">
                         No hay cuotas para mostrar
                       </td>
                     </tr>
                   ) : (
-                    cuotas.map((cuota) => (
+                    cuotasFiltradas.map((cuota) => (
                       <tr key={cuota.id}>
                         <td>
                           {formatDate(cuota.fechaCuota)}
@@ -348,15 +371,15 @@ const CuotasPage = () => {
                     ))
                   )}
                 </tbody>
-                {cuotas.length > 0 && (
+                {cuotasFiltradas.length > 0 && (
                   <tfoot>
                     <tr style={{ fontWeight: 'bold', backgroundColor: 'rgba(0,0,0,0.05)' }}>
-                      <td colSpan={5}>TOTALES ({cuotas.length} cuotas)</td>
+                      <td colSpan={5}>TOTALES ({cuotasFiltradas.length} cuotas)</td>
                       <td className="text-end">
-                        {formatCurrency(cuotas.reduce((sum, c) => sum + c.importe, 0))}
+                        {formatCurrency(cuotasFiltradas.reduce((sum, c) => sum + c.importe, 0))}
                       </td>
                       <td className="text-end">
-                        {formatCurrency(cuotas.reduce((sum, c) => sum + c.importePagado, 0))}
+                        {formatCurrency(cuotasFiltradas.reduce((sum, c) => sum + c.importePagado, 0))}
                       </td>
                       <td></td>
                     </tr>

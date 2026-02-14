@@ -13,5 +13,10 @@ namespace BookstoreAPI.Services.Pdf
         /// Genera el PDF completo: comprobante x3 (triplicado) + cupones de cuotas
         /// </summary>
         byte[] GenerarComprobanteCompletoConCupones(Comprobante comprobante, Cliente cliente, List<ComprobanteDetalle> detalles, List<Cuota> cuotas);
+
+        /// <summary>
+        /// Genera un PDF con múltiples comprobantes por triplicado (sin cupones)
+        /// </summary>
+        byte[] GenerarLotePdf(List<(Comprobante comprobante, Cliente cliente, List<ComprobanteDetalle> detalles)> lote);
     }
 }

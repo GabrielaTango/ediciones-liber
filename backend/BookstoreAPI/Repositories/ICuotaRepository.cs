@@ -12,5 +12,6 @@ namespace BookstoreAPI.Repositories
         Task DeleteByComprobanteIdAsync(int comprobanteId);
         Task<IEnumerable<CuotaListadoDto>> GetCuotasByFiltrosAsync(int? zonaId, int? mes, int? anio);
         Task<bool> UpdateImportePagadoAsync(int cuotaId, decimal importePagado);
+        Task DeletePendientesByComprobanteIdAsync(int comprobanteId);
     }
 }

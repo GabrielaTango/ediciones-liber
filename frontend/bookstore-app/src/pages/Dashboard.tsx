@@ -116,7 +116,10 @@ const Dashboard = () => {
             value={stats.ventasHoy}
             icon="fa-solid fa-chart-line"
             variant="danger"
-            onClick={() => navigate('/comprobantes')}
+            onClick={() => {
+              const hoy = new Date().toISOString().split('T')[0];
+              navigate(`/comprobantes?fechaDesde=${hoy}&fechaHasta=${hoy}`);
+            }}
           />
         </div>
       </div>

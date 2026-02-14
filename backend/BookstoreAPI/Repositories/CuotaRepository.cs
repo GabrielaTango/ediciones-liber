@@ -110,15 +110,59 @@ namespace BookstoreAPI.Repositories
 
         public async Task<bool> UpdateImportePagadoAsync(int cuotaId, decimal importePagado)
         {
-            const string query = @"
+            const string updateCuotaQuery = @"
                 UPDATE cuotas
                 SET importe_pagado = @ImportePagado,
                     estado = CASE WHEN @ImportePagado >= importe THEN 'PAG' ELSE 'PEN' END
                 WHERE id = @CuotaId";
 
+            // Si todas las cuotas del comprobante están pagadas, actualizar estado a PAG
+            const string autoPayQuery = @"
+                UPDATE comprobantes
+                SET estado = 'PAG'
+                WHERE id = (SELECT comprobante_id FROM cuotas WHERE id = @CuotaId)
+                  AND NOT EXISTS (
+                      SELECT 1 FROM cuotas
+                      WHERE comprobante_id = (SELECT comprobante_id FROM cuotas WHERE id = @CuotaId)
+                      AND estado != 'PAG'
+                  )";
+
+            // Si alguna cuota vuelve a PEN, revertir el comprobante a PEN
+            const string revertQuery = @"
+                UPDATE comprobantes
+                SET estado = 'PEN'
+                WHERE id = (SELECT comprobante_id FROM cuotas WHERE id = @CuotaId)
+                  AND estado = 'PAG'
+                  AND EXISTS (
+                      SELECT 1 FROM cuotas
+                      WHERE comprobante_id = (SELECT comprobante_id FROM cuotas WHERE id = @CuotaId)
+                      AND estado != 'PAG'
+                  )";
+
             using var connection = _context.CreateConnection();
-            var rowsAffected = await connection.ExecuteAsync(query, new { CuotaId = cuotaId, ImportePagado = importePagado });
-            return rowsAffected > 0;
+            connection.Open();
+            using var transaction = connection.BeginTransaction();
+
+            try
+            {
+                var rowsAffected = await connection.ExecuteAsync(updateCuotaQuery, new { CuotaId = cuotaId, ImportePagado = importePagado }, transaction);
+                await connection.ExecuteAsync(autoPayQuery, new { CuotaId = cuotaId }, transaction);
+                await connection.ExecuteAsync(revertQuery, new { CuotaId = cuotaId }, transaction);
+                transaction.Commit();
+                return rowsAffected > 0;
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        public async Task DeletePendientesByComprobanteIdAsync(int comprobanteId)
+        {
+            const string query = "DELETE FROM cuotas WHERE comprobante_id = @ComprobanteId AND estado != 'PAG'";
+            using var connection = _context.CreateConnection();
+            await connection.ExecuteAsync(query, new { ComprobanteId = comprobanteId });
         }
 
     }

@@ -48,6 +48,37 @@ namespace BookstoreAPI.Services.Pdf
             }
         }
 
+        public byte[] GenerarLoteCuponesPdf(List<(Comprobante comprobante, Cliente cliente, List<Cuota> cuotas)> lote)
+        {
+            try
+            {
+                var document = Document.Create(container =>
+                {
+                    foreach (var item in lote)
+                    {
+                        if (!item.cuotas.Any()) continue;
+
+                        container.Page(page =>
+                        {
+                            page.Size(PageSizes.A4);
+                            page.Margin(30);
+                            page.DefaultTextStyle(x => x.FontSize(10));
+
+                            page.Header().Element(c => ComposeHeader(c, item.cliente, item.comprobante, item.cuotas));
+                            page.Content().Element(c => ComposeContent(c, item.cliente, item.comprobante, item.cuotas));
+                        });
+                    }
+                });
+
+                return document.GeneratePdf();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al generar PDF de lote de cupones");
+                throw;
+            }
+        }
+
         private void ComposeHeader(IContainer container, Cliente cliente, Comprobante comprobante, List<Cuota> cuotas)
         {
             container.Column(column =>
@@ -127,8 +158,9 @@ namespace BookstoreAPI.Services.Pdf
                     c.Spacing(3);
 
                     // Encabezado del cupón
-                    c.Item().Border(1).Background(Colors.Grey.Lighten3)
-                        .Padding(5).Text("BOOKSTORE APP").FontSize(11).Bold().AlignCenter();
+                    c.Item().AlignCenter().Width(60).Image("./Images/LiberLogo.png");
+                    //c.Item().Border(1).Background(Colors.Grey.Lighten3)
+                        //.Padding(5).Text("BOOKSTORE APP").FontSize(11).Bold().AlignCenter();
 
                     // Datos del cliente
                     c.Item().Text($"Sr/a: {cliente.Nombre}").FontSize(9);
@@ -142,7 +174,6 @@ namespace BookstoreAPI.Services.Pdf
                         row.RelativeItem(70).Column(col =>
                         {
                             col.Item().Text($"Cuota: ${cuota.Importe:N2}").FontSize(10).Bold();
-                            col.Item().Text($"Estado: {cuota.Estado}").FontSize(8);
                         });
 
                         row.RelativeItem(30).Column(col =>

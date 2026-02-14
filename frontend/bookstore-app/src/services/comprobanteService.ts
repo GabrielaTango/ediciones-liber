@@ -11,6 +11,7 @@ export interface ComprobanteFilters {
   tipoComprobante?: string;
   fechaDesde?: string;
   fechaHasta?: string;
+  vendedorId?: number;
 }
 
 export const comprobanteService = {
@@ -21,6 +22,7 @@ export const comprobanteService = {
     if (filters?.tipoComprobante) params.append('tipoComprobante', filters.tipoComprobante);
     if (filters?.fechaDesde) params.append('fechaDesde', filters.fechaDesde);
     if (filters?.fechaHasta) params.append('fechaHasta', filters.fechaHasta);
+    if (filters?.vendedorId) params.append('vendedorId', filters.vendedorId.toString());
 
     const queryString = params.toString();
     const url = queryString ? `/comprobantes?${queryString}` : '/comprobantes';
@@ -52,6 +54,10 @@ export const comprobanteService = {
     return response.data;
   },
 
+  cancelarDeuda: async (id: number): Promise<void> => {
+    await api.post(`/comprobantes/${id}/cancelar-deuda`);
+  },
+
   openPdf: (id: number): void => {
     const pdfUrl = `${API_BASE_URL}/comprobantes/${id}/pdf`;
     window.open(pdfUrl, '_blank');
@@ -65,6 +71,37 @@ export const comprobanteService = {
   openCompletoPdf: (id: number): void => {
     const pdfUrl = `${API_BASE_URL}/comprobantes/${id}/completo-pdf`;
     window.open(pdfUrl, '_blank');
+  },
+
+  openBatchPdf: (filters: ComprobanteFilters): void => {
+    const params = new URLSearchParams();
+    if (filters.zonaId) params.append('zonaId', filters.zonaId.toString());
+    if (filters.clienteId) params.append('clienteId', filters.clienteId.toString());
+    if (filters.tipoComprobante) params.append('tipoComprobante', filters.tipoComprobante);
+    if (filters.fechaDesde) params.append('fechaDesde', filters.fechaDesde);
+    if (filters.fechaHasta) params.append('fechaHasta', filters.fechaHasta);
+    if (filters.vendedorId) params.append('vendedorId', filters.vendedorId.toString());
+
+    const pdfUrl = `${API_BASE_URL}/comprobantes/batch-pdf?${params.toString()}`;
+    window.open(pdfUrl, '_blank');
+  },
+
+  openBatchCuponesPdf: (filters: ComprobanteFilters): void => {
+    const params = new URLSearchParams();
+    if (filters.zonaId) params.append('zonaId', filters.zonaId.toString());
+    if (filters.clienteId) params.append('clienteId', filters.clienteId.toString());
+    if (filters.tipoComprobante) params.append('tipoComprobante', filters.tipoComprobante);
+    if (filters.fechaDesde) params.append('fechaDesde', filters.fechaDesde);
+    if (filters.fechaHasta) params.append('fechaHasta', filters.fechaHasta);
+    if (filters.vendedorId) params.append('vendedorId', filters.vendedorId.toString());
+
+    const pdfUrl = `${API_BASE_URL}/comprobantes/batch-cupones-pdf?${params.toString()}`;
+    window.open(pdfUrl, '_blank');
+  },
+
+  getUltimoGastoEnvio: async (): Promise<number> => {
+    const response = await api.get<{ gastoEnvio: number }>('/comprobantes/ultimo-gasto-envio');
+    return response.data.gastoEnvio;
   },
 
   getIvaVentas: async (fechaDesde: string, fechaHasta: string): Promise<IvaVenta[]> => {

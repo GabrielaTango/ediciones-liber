@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation, Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import Select from 'react-select';
 import { comprobanteService } from '../services/comprobanteService';
+import { showSuccessAlert, showErrorAlert, showConfirmDialog } from '../utils/sweetalert';
 import { clienteService } from '../services/clienteService';
 import { articuloService } from '../services/articuloService';
 import { referenceService } from '../services/referenceService';
@@ -75,6 +76,7 @@ const ComprobanteFormPage = () => {
   const [numeroComprobanteCargado, setNumeroComprobanteCargado] = useState<string>('');
   const [caeCargado, setCaeCargado] = useState<string>('');
   const [fechaCargada, setFechaCargada] = useState<string>('');
+  const [estadoComprobante, setEstadoComprobante] = useState<string>('PEN');
   const [estaCancelado, setEstaCancelado] = useState<boolean>(false);
   const [notaCreditoNumero, setNotaCreditoNumero] = useState<string>('');
   const [comprobanteAsociadoNumero, setComprobanteAsociadoNumero] = useState<string>('');
@@ -98,6 +100,35 @@ const ComprobanteFormPage = () => {
       case 'NC': return 'bg-danger';
       case 'PRE': return 'bg-warning text-dark';
       default: return 'bg-secondary';
+    }
+  };
+
+  // Helper para obtener badge de estado
+  const getEstadoBadge = (estado: string) => {
+    switch (estado) {
+      case 'PAG': return <span className="badge bg-success fs-6">Pagada</span>;
+      case 'CAN': return <span className="badge bg-danger fs-6">Deuda Cancelada</span>;
+      default: return <span className="badge bg-warning text-dark fs-6">Pendiente</span>;
+    }
+  };
+
+  const handleCancelarDeuda = async () => {
+    if (!id) return;
+
+    const result = await showConfirmDialog(
+      'Cancelar Deuda',
+      `¿Está seguro de cancelar la deuda del comprobante ${numeroComprobanteCargado}? Esto eliminará las cuotas pendientes.`
+    );
+
+    if (result.isConfirmed) {
+      try {
+        await comprobanteService.cancelarDeuda(parseInt(id));
+        await showSuccessAlert('Deuda Cancelada', 'Las cuotas pendientes fueron eliminadas y el comprobante fue marcado como cancelado.');
+        loadComprobante(parseInt(id));
+      } catch (err: any) {
+        const mensaje = err.response?.data?.message || 'Error al cancelar la deuda';
+        await showErrorAlert('Error', mensaje);
+      }
     }
   };
 
@@ -156,6 +187,18 @@ const ComprobanteFormPage = () => {
       setClientes(clientesData);
       setArticulos(articulosData);
       setVendedores(vendedoresData);
+
+      // Cargar último gasto de envío como default solo para comprobantes nuevos
+      if (!id) {
+        try {
+          const ultimoGasto = await comprobanteService.getUltimoGastoEnvio();
+          if (ultimoGasto > 0) {
+            setGastosEnvio(ultimoGasto);
+          }
+        } catch {
+          // Si falla, se queda en 0
+        }
+      }
     } catch (err) {
       console.error('Error loading initial data:', err);
     } finally {
@@ -182,6 +225,7 @@ const ComprobanteFormPage = () => {
       setNumeroComprobanteCargado(comprobante.numeroComprobante || '');
       setCaeCargado(comprobante.cae || '');
       setFechaCargada(comprobante.fecha ? new Date(comprobante.fecha).toLocaleDateString('es-AR') : '');
+      setEstadoComprobante(comprobante.estado || 'PEN');
       setEstaCancelado(comprobante.estaCancelado || false);
       setNotaCreditoNumero(comprobante.notaCreditoNumero || '');
       setComprobanteAsociadoNumero(comprobante.comprobanteAsociadoNumero || '');
@@ -409,10 +453,22 @@ const ComprobanteFormPage = () => {
           : isEditMode ? 'Editar Comprobante' : 'Nuevo Comprobante'}
         icon="fa-solid fa-receipt"
         actions={
-          <Link to="/comprobantes" className="btn-secondary-action">
-            <Icon name="fa-solid fa-arrow-left" />
-            Volver
-          </Link>
+          <div className="d-flex gap-2">
+            {isViewMode && estadoComprobante === 'PEN' && tipoComprobanteCargado !== 'NC' && (
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={handleCancelarDeuda}
+              >
+                <i className="fa-solid fa-ban me-1"></i>
+                Cancelar Deuda
+              </button>
+            )}
+            <Link to="/comprobantes" className="btn-secondary-action">
+              <Icon name="fa-solid fa-arrow-left" />
+              Volver
+            </Link>
+          </div>
         }
       />
 
@@ -425,6 +481,7 @@ const ComprobanteFormPage = () => {
                 {getTipoComprobanteNombre(tipoComprobanteCargado)}
               </span>
               <span className="fw-bold fs-5">{numeroComprobanteCargado}</span>
+              {getEstadoBadge(estadoComprobante)}
               {estaCancelado && (
                 <span className="badge bg-dark">CANCELADA</span>
               )}
@@ -606,11 +663,13 @@ const ComprobanteFormPage = () => {
                   <input
                     type="number"
                     className="form-control"
-                    value={anticipo}
+                    value={anticipo || ''}
                     onChange={(e) => setAnticipo(parseFloat(e.target.value) || 0)}
+                    onBlur={(e) => { if (!e.target.value) setAnticipo(0); }}
                     onFocus={(e) => e.target.select()}
                     min="0"
                     step="0.01"
+                    placeholder="0.00"
                     disabled={isViewMode}
                   />
                 </div>
@@ -624,11 +683,13 @@ const ComprobanteFormPage = () => {
                   <input
                     type="number"
                     className="form-control"
-                    value={contraEntrega}
+                    value={contraEntrega || ''}
                     onChange={(e) => setContraEntrega(parseFloat(e.target.value) || 0)}
+                    onBlur={(e) => { if (!e.target.value) setContraEntrega(0); }}
                     onFocus={(e) => e.target.select()}
                     min="0"
                     step="0.01"
+                    placeholder="0.00"
                     disabled={isViewMode}
                   />
                 </div>
@@ -640,8 +701,9 @@ const ComprobanteFormPage = () => {
                 <input
                   type="number"
                   className="form-control"
-                  value={cantidadCuotas}
-                  onChange={(e) => setCantidadCuotas(parseInt(e.target.value) || 1)}
+                  value={cantidadCuotas || ''}
+                  onChange={(e) => setCantidadCuotas(parseInt(e.target.value) || 0)}
+                  onBlur={(e) => { if (!e.target.value || cantidadCuotas < 1) setCantidadCuotas(1); }}
                   onFocus={(e) => e.target.select()}
                   min="1"
                   max="60"
@@ -656,11 +718,13 @@ const ComprobanteFormPage = () => {
                   <input
                     type="number"
                     className="form-control"
-                    value={valorCuota}
+                    value={valorCuota || ''}
                     onChange={(e) => setValorCuota(parseFloat(e.target.value) || 0)}
+                    onBlur={(e) => { if (!e.target.value) setValorCuota(0); }}
                     onFocus={(e) => e.target.select()}
                     min="0"
                     step="0.01"
+                    placeholder="0.00"
                     disabled={isViewMode}
                   />
                 </div>
@@ -694,8 +758,9 @@ const ComprobanteFormPage = () => {
                   <input
                     type="number"
                     className="form-control"
-                    value={gastosEnvio}
+                    value={gastosEnvio || ''}
                     onChange={(e) => setGastosEnvio(parseFloat(e.target.value) || 0)}
+                    onBlur={(e) => { if (!e.target.value) setGastosEnvio(0); }}
                     onFocus={(e) => e.target.select()}
                     min="0"
                     step="0.01"
@@ -858,8 +923,9 @@ const ComprobanteFormPage = () => {
                     type="number"
                     className="form-control"
                     name="cantidad"
-                    value={itemForm.cantidad}
+                    value={itemForm.cantidad || ''}
                     onChange={handleItemFormChange}
+                    onBlur={(e) => { if (!e.target.value) setItemForm(f => ({ ...f, cantidad: 1 })); }}
                     onFocus={(e) => e.target.select()}
                     min="1"
                     required
@@ -873,11 +939,13 @@ const ComprobanteFormPage = () => {
                       type="number"
                       className="form-control"
                       name="precio_Unitario"
-                      value={itemForm.precio_Unitario}
+                      value={itemForm.precio_Unitario || ''}
                       onChange={handleItemFormChange}
+                      onBlur={(e) => { if (!e.target.value) setItemForm(f => ({ ...f, precio_Unitario: 0 })); }}
                       onFocus={(e) => e.target.select()}
                       min="0"
                       step="0.01"
+                      placeholder="0.00"
                       required
                     />
                   </div>

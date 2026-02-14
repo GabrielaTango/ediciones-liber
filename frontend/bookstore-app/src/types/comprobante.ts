@@ -20,6 +20,9 @@ export interface Comprobante {
   esElectronica: boolean;
   esPresupuesto: boolean;
 
+  // Estado del comprobante: PEN, PAG, CAN
+  estado?: string;
+
   // Relación con comprobante asociado
   comprobanteAsociado_Id?: number;
   comprobanteAsociadoNumero?: string;  // Para NC: número de la factura
