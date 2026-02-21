@@ -21,6 +21,13 @@ import GastosPage from './pages/GastosPage';
 import GastoFormPage from './pages/GastoFormPage';
 import CategoriasGastoPage from './pages/CategoriasGastoPage';
 import ArticulosVendidosZonaPage from './pages/ArticulosVendidosZonaPage';
+import ProveedoresPage from './pages/ProveedoresPage';
+import ProveedorFormPage from './pages/ProveedorFormPage';
+import ComprobantesProveedoresPage from './pages/ComprobantesProveedoresPage';
+import ComprobanteProveedorFormPage from './pages/ComprobanteProveedorFormPage';
+import ComprobanteProveedorViewPage from './pages/ComprobanteProveedorViewPage';
+import CuotasProveedoresPage from './pages/CuotasProveedoresPage';
+import IvaComprasPage from './pages/IvaComprasPage';
 
 function App() {
   return (
@@ -51,6 +58,14 @@ function App() {
         <Route path="subzonas" element={<SubZonasPage />} />
         <Route path="provincias" element={<ProvinciasPage />} />
         <Route path="vendedores" element={<VendedoresPage />} />
+        <Route path="proveedores" element={<ProveedoresPage />} />
+        <Route path="proveedores/nuevo" element={<ProveedorFormPage />} />
+        <Route path="proveedores/editar/:id" element={<ProveedorFormPage />} />
+        <Route path="comprobantes-proveedores" element={<ComprobantesProveedoresPage />} />
+        <Route path="comprobantes-proveedores/nuevo" element={<ComprobanteProveedorFormPage />} />
+        <Route path="comprobantes-proveedores/ver/:id" element={<ComprobanteProveedorViewPage />} />
+        <Route path="cuotas-proveedores" element={<CuotasProveedoresPage />} />
+        <Route path="iva-compras" element={<IvaComprasPage />} />
         <Route path="transportes" element={<TransportesPage />} />
       </Route>
     </Routes>

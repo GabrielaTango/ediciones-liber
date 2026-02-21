@@ -100,7 +100,63 @@ const Sidebar = () => {
               <span>Artículos</span>
             </Link>
           </li>
-                    {/* References Section */}
+          {/* Compras Section */}
+          <li style={{ marginTop: '2rem' }}>
+            <div
+              style={{
+                padding: '0.5rem 1.5rem',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'rgba(255, 255, 255, 0.5)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}
+            >
+              Compras
+            </div>
+          </li>
+          <li>
+            <Link
+              to="/proveedores"
+              className={isActive('/proveedores') ? 'active' : ''}
+              onClick={closeMobileMenu}
+            >
+              <Icon name="fa-solid fa-truck-field" />
+              <span>Proveedores</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/comprobantes-proveedores"
+              className={isActive('/comprobantes-proveedores') ? 'active' : ''}
+              onClick={closeMobileMenu}
+            >
+              <Icon name="fa-solid fa-file-contract" />
+              <span>Comp. Proveedores</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/cuotas-proveedores"
+              className={isActive('/cuotas-proveedores') ? 'active' : ''}
+              onClick={closeMobileMenu}
+            >
+              <Icon name="fa-solid fa-money-check-dollar" />
+              <span>Cuotas Proveed.</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/gastos"
+              className={isActive('/gastos') ? 'active' : ''}
+              onClick={closeMobileMenu}
+            >
+              <Icon name="fa-solid fa-money-bill-trend-up" />
+              <span>Gastos</span>
+            </Link>
+          </li>
+
+          {/* Listados Section */}
           <li style={{ marginTop: '2rem' }}>
             <div
               style={{
@@ -123,6 +179,16 @@ const Sidebar = () => {
             >
               <Icon name="fa-solid fa-file-lines" />
               <span>IVA Ventas</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/iva-compras"
+              className={isActive('/iva-compras') ? 'active' : ''}
+              onClick={closeMobileMenu}
+            >
+              <Icon name="fa-solid fa-file-lines" />
+              <span>IVA Compras</span>
             </Link>
           </li>
           <li>
@@ -155,17 +221,6 @@ const Sidebar = () => {
               <span>Art. x Zona</span>
             </Link>
           </li>
-          <li>
-            <Link
-              to="/gastos"
-              className={isActive('/gastos') ? 'active' : ''}
-              onClick={closeMobileMenu}
-            >
-              <Icon name="fa-solid fa-money-bill-trend-up" />
-              <span>Gastos</span>
-            </Link>
-          </li>
-
           {/* References Section */}
           <li style={{ marginTop: '2rem' }}>
             <div

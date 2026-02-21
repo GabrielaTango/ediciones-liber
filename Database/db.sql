@@ -221,6 +221,57 @@ CREATE TABLE IF NOT EXISTS `remitos` (
   CONSTRAINT `FK_remitos_transportes` FOREIGN KEY (`transporte_id`) REFERENCES `transportes` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE IF NOT EXISTS `proveedores` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `Codigo` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `Nombre` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `RazonSocial` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `Cuit` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `Domicilio` varchar(300) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `Telefono` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `Mail` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `FechaInhabilitacion` date DEFAULT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `comprobantes_proveedores` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `Proveedor_Id` int NOT NULL,
+  `TipoComprobante` varchar(3) COLLATE utf8mb4_general_ci NOT NULL,
+  `FechaEmision` date NOT NULL,
+  `NroComprobante` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `ImporteTotal` decimal(17,2) NOT NULL,
+  `CantidadCuotas` int NOT NULL,
+  `FechaPrimerVencimiento` date NOT NULL,
+  PRIMARY KEY (`Id`),
+  KEY `FK_comp_prov_proveedores` (`Proveedor_Id`),
+  CONSTRAINT `FK_comp_prov_proveedores` FOREIGN KEY (`Proveedor_Id`) REFERENCES `proveedores` (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `cuotas_proveedores` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `ComprobanteProveedor_Id` int NOT NULL,
+  `NumeroCuota` int NOT NULL,
+  `FechaVencimiento` date NOT NULL,
+  `Importe` decimal(17,2) NOT NULL,
+  `ImportePagado` decimal(17,2) NOT NULL DEFAULT 0,
+  `Estado` varchar(3) COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'PEN',
+  PRIMARY KEY (`Id`),
+  KEY `FK_cuotas_prov_comp` (`ComprobanteProveedor_Id`),
+  CONSTRAINT `FK_cuotas_prov_comp` FOREIGN KEY (`ComprobanteProveedor_Id`) REFERENCES `comprobantes_proveedores` (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `pagos_cuotas_proveedores` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `CuotaProveedor_Id` int NOT NULL,
+  `NroReferencia` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `Fecha` date NOT NULL,
+  `Importe` decimal(17,2) NOT NULL,
+  PRIMARY KEY (`Id`),
+  KEY `FK_pagos_cuotas_prov` (`CuotaProveedor_Id`),
+  CONSTRAINT `FK_pagos_cuotas_prov` FOREIGN KEY (`CuotaProveedor_Id`) REFERENCES `cuotas_proveedores` (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
 /*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;

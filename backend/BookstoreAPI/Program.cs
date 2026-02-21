@@ -41,6 +41,9 @@ builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
 builder.Services.AddScoped<IGastoRepository, GastoRepository>();
 builder.Services.AddScoped<ICategoriaGastoRepository, CategoriaGastoRepository>();
 builder.Services.AddScoped<IRemitoRepository, RemitoRepository>();
+builder.Services.AddScoped<IProveedorRepository, ProveedorRepository>();
+builder.Services.AddScoped<IComprobanteProveedorRepository, ComprobanteProveedorRepository>();
+builder.Services.AddScoped<ICuotaProveedorRepository, CuotaProveedorRepository>();
 
 // Registrar Services
 builder.Services.AddScoped<IClienteService, ClienteService>();
@@ -50,6 +53,8 @@ builder.Services.AddScoped<IComprobanteService, ComprobanteService>();
 builder.Services.AddScoped<IGastoService, GastoService>();
 builder.Services.AddScoped<ICategoriaGastoService, CategoriaGastoService>();
 builder.Services.AddScoped<IRemitoService, RemitoService>();
+builder.Services.AddScoped<IProveedorService, ProveedorService>();
+builder.Services.AddScoped<IComprobanteProveedorService, ComprobanteProveedorService>();
 
 // Registrar Services AFIP
 builder.Services.AddScoped<IAfipAuthService, AfipAuthService>();
@@ -60,6 +65,7 @@ builder.Services.AddScoped<IAfipQrService, AfipQrService>();
 builder.Services.AddScoped<IComprobantePdfService, ComprobantePdfService>();
 builder.Services.AddScoped<ICuotaPdfService, CuotaPdfService>();
 builder.Services.AddScoped<IIvaVentasPdfService, IvaVentasPdfService>();
+builder.Services.AddScoped<IIvaComprasPdfService, IvaComprasPdfService>();
 builder.Services.AddScoped<IRemitoPdfService, RemitoPdfService>();
 builder.Services.AddScoped<IArticulosVendidosZonaPdfService, ArticulosVendidosZonaPdfService>();
 
