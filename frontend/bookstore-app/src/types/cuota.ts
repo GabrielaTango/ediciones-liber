@@ -1,3 +1,10 @@
+export interface PagoCuotaDto {
+  id: number;
+  nroReferencia: string;
+  fecha: string;
+  importe: number;
+}
+
 export interface CuotaListado {
   id: number;
   comprobanteId: number;
@@ -13,8 +20,17 @@ export interface CuotaListado {
   estado?: string;
   numeroCuota: number; // 0 = contraentrega, 1+ = cuotas regulares
   esCuotaCero: boolean; // Calculado en el backend: numeroCuota === 0
+  pagos: PagoCuotaDto[];
 }
 
-export interface UpdateImportePagadoDto {
-  importePagado: number;
+export interface CreatePagoCuotaDto {
+  nroReferencia: string;
+  fecha: string;
+  importe: number;
+}
+
+export interface CreatePagoComprobanteDto {
+  nroReferencia: string;
+  importe: number;
+  fecha?: string;
 }

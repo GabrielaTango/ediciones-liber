@@ -9,7 +9,12 @@ import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { Icon } from './Icon';
 
-const Sidebar = () => {
+interface SidebarProps {
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+}
+
+const Sidebar = ({ collapsed, onToggleCollapse }: SidebarProps) => {
   const location = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -35,7 +40,7 @@ const Sidebar = () => {
       </button>
 
       {/* Sidebar */}
-      <aside className={`sidebar ${isMobileOpen ? 'show' : ''}`}>
+      <aside className={`sidebar ${isMobileOpen ? 'show' : ''} ${collapsed ? 'collapsed' : ''}`}>
         {/* Brand */}
         <div className="sidebar-brand">
           <h4>
@@ -47,6 +52,15 @@ const Sidebar = () => {
             <span> Liber</span>
           </h4>
         </div>
+
+        {/* Collapse Toggle (desktop only) */}
+        <button
+          className="sidebar-collapse-btn"
+          onClick={onToggleCollapse}
+          title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+        >
+          <Icon name={collapsed ? 'fa-solid fa-angles-right' : 'fa-solid fa-angles-left'} />
+        </button>
 
         {/* Main Navigation */}
         <ul className="sidebar-menu">

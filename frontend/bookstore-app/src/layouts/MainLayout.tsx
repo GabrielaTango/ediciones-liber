@@ -5,14 +5,17 @@
  * Uses theme-consistent spacing and background colors.
  */
 
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
 const MainLayout = () => {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   return (
     <>
-      <Sidebar />
-      <main className="main-content">
+      <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} />
+      <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <Outlet />
       </main>
     </>

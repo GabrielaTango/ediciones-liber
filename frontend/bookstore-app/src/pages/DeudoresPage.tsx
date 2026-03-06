@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { comprobanteService } from '../services/comprobanteService';
 import { referenceService } from '../services/referenceService';
 import type { DeudoresReporte, DeudorItem } from '../types/deudores';
@@ -17,6 +17,17 @@ const DeudoresPage = () => {
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [anio, setAnio] = useState(now.getFullYear());
   const [zonaId, setZonaId] = useState<number | ''>('');
+  const [filtroCliente, setFiltroCliente] = useState('');
+  const [filtroComprobante, setFiltroComprobante] = useState('');
+
+  const deudoresFiltrados = useMemo(() => {
+    if (!reporte) return [];
+    return reporte.deudores.filter((d) => {
+      if (filtroCliente && !d.razonSocial.toLowerCase().includes(filtroCliente.toLowerCase())) return false;
+      if (filtroComprobante && !(d.numeroComprobante || '').toLowerCase().includes(filtroComprobante.toLowerCase())) return false;
+      return true;
+    });
+  }, [reporte, filtroCliente, filtroComprobante]);
 
   useEffect(() => {
     loadZonas();
@@ -58,27 +69,17 @@ const DeudoresPage = () => {
     }).format(value);
   };
 
-  const getCuotaValue = (deudor: DeudorItem, periodo: string) => {
-    const cuota = deudor.cuotas.find(c => c.periodo === periodo);
-    if (!cuota) return null;
-
-    // Mostrar el importe pagado (puede ser 0, parcial o total)
-    return cuota.importePagado;
+  const getCuota = (deudor: DeudorItem, periodo: string) => {
+    return deudor.cuotas.find(c => c.periodo === periodo) ?? null;
   };
 
   const getCuotaStyle = (deudor: DeudorItem, periodo: string) => {
     const cuota = deudor.cuotas.find(c => c.periodo === periodo);
     if (!cuota) return {};
 
-    // Pagada completamente
-    if (cuota.estado === 'PAG' || cuota.importePagado >= cuota.importe) {
+    if (cuota.saldo === 0) {
       return { backgroundColor: 'rgba(25, 135, 84, 0.1)', color: '#198754' };
     }
-    // Parcialmente pagada
-    if (cuota.importePagado > 0 && cuota.importePagado < cuota.importe) {
-      return { backgroundColor: 'rgba(255, 193, 7, 0.2)', color: '#856404' };
-    }
-    // Pendiente
     return { backgroundColor: 'rgba(220, 53, 69, 0.1)', color: '#dc3545' };
   };
 
@@ -155,7 +156,7 @@ const DeudoresPage = () => {
                 ))}
               </select>
             </div>
-            <div className="col-md-3">
+            <div className="col-md-2">
               <GradientButton
                 icon={loading ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-search'}
                 onClick={handleBuscar}
@@ -163,6 +164,28 @@ const DeudoresPage = () => {
               >
                 {loading ? 'Buscando...' : 'Buscar'}
               </GradientButton>
+            </div>
+          </div>
+          <div className="row mt-3">
+            <div className="col-md-3">
+              <label className="form-label">Cliente</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Buscar por cliente..."
+                value={filtroCliente}
+                onChange={(e) => setFiltroCliente(e.target.value)}
+              />
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Comprobante</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Buscar por comprobante..."
+                value={filtroComprobante}
+                onChange={(e) => setFiltroComprobante(e.target.value)}
+              />
             </div>
           </div>
         </div>
@@ -195,14 +218,14 @@ const DeudoresPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {reporte.deudores.length === 0 ? (
+                  {deudoresFiltrados.length === 0 ? (
                     <tr>
                       <td colSpan={8 + reporte.periodosCuotas.length} className="text-center py-4">
                         No hay comprobantes para el período seleccionado
                       </td>
                     </tr>
                   ) : (
-                    reporte.deudores.map((deudor) => (
+                    deudoresFiltrados.map((deudor) => (
                       <tr key={deudor.comprobanteId}>
                         <td>{deudor.numeroComprobante || '-'}</td>
                         <td>{deudor.razonSocial}</td>
@@ -217,7 +240,7 @@ const DeudoresPage = () => {
                         </td>
                         <td className="text-end">{formatCurrency(deudor.anticipo)}</td>
                         {reporte.periodosCuotas.map((periodo) => {
-                          const value = getCuotaValue(deudor, periodo);
+                          const cuota = getCuota(deudor, periodo);
                           const style = getCuotaStyle(deudor, periodo);
 
                           return (
@@ -226,7 +249,7 @@ const DeudoresPage = () => {
                               className="text-end"
                               style={style}
                             >
-                              {value !== null ? formatCurrency(value) : '-'}
+                              {formatCurrency(cuota?.importePagado ?? 0)}
                             </td>
                           );
                         })}
@@ -234,23 +257,23 @@ const DeudoresPage = () => {
                     ))
                   )}
                 </tbody>
-                {reporte.deudores.length > 0 && (
+                {deudoresFiltrados.length > 0 && (
                   <tfoot>
                     <tr style={{ fontWeight: 'bold', backgroundColor: 'rgba(0,0,0,0.05)' }}>
                       <td colSpan={4}>TOTALES</td>
                       <td className="text-end">
-                        {formatCurrency(reporte.deudores.reduce((sum, d) => sum + d.totalComprobante, 0))}
+                        {formatCurrency(deudoresFiltrados.reduce((sum, d) => sum + d.totalComprobante, 0))}
                       </td>
                       <td className="text-end" style={{ color: '#dc3545' }}>
-                        {formatCurrency(reporte.deudores.reduce((sum, d) => sum + d.saldo, 0))}
+                        {formatCurrency(deudoresFiltrados.reduce((sum, d) => sum + d.saldo, 0))}
                       </td>
                       <td className="text-end">
-                        {formatCurrency(reporte.deudores.reduce((sum, d) => sum + d.anticipo, 0))}
+                        {formatCurrency(deudoresFiltrados.reduce((sum, d) => sum + d.anticipo, 0))}
                       </td>
                       {reporte.periodosCuotas.map((periodo) => {
-                        const total = reporte.deudores.reduce((sum, deudor) => {
-                          const value = getCuotaValue(deudor, periodo);
-                          return sum + (value || 0);
+                        const total = deudoresFiltrados.reduce((sum, deudor) => {
+                          const cuota = getCuota(deudor, periodo);
+                          return sum + (cuota?.importePagado || 0);
                         }, 0);
 
                         return (
@@ -278,20 +301,7 @@ const DeudoresPage = () => {
                     borderRadius: '3px'
                   }}
                 ></span>
-                <small>Cuota pagada</small>
-              </div>
-              <div className="d-flex align-items-center">
-                <span
-                  className="me-2"
-                  style={{
-                    display: 'inline-block',
-                    width: '16px',
-                    height: '16px',
-                    backgroundColor: 'rgba(255, 193, 7, 0.4)',
-                    borderRadius: '3px'
-                  }}
-                ></span>
-                <small>Cuota parcial</small>
+                <small>Sin saldo</small>
               </div>
               <div className="d-flex align-items-center">
                 <span
@@ -304,7 +314,7 @@ const DeudoresPage = () => {
                     borderRadius: '3px'
                   }}
                 ></span>
-                <small>Cuota pendiente</small>
+                <small>Con saldo pendiente</small>
               </div>
             </div>
           </div>

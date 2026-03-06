@@ -564,10 +564,35 @@ namespace BookstoreAPI.Repositories
 
             cuotasQuery += " ORDER BY cu.Comprobante_Id, cu.numero_cuota";
 
+            // Query para obtener pagos agrupados por comprobante y mes de pago
+            var pagosQuery = @"
+                SELECT
+                    cu.Comprobante_Id,
+                    pc.Fecha AS FechaPago,
+                    pc.Importe AS ImportePago
+                FROM pagos_cuotas pc
+                INNER JOIN cuotas cu ON pc.Cuota_Id = cu.Id
+                INNER JOIN comprobantes c ON cu.Comprobante_Id = c.id
+                INNER JOIN clientes cl ON c.cliente_id = cl.Id
+                LEFT JOIN zonas z ON cl.Zona_Id = z.id
+                WHERE MONTH(c.fecha) = @Mes AND YEAR(c.fecha) = @Anio
+                  AND c.tipoComprobante != 'NC'
+                  AND NOT EXISTS (
+                      SELECT 1 FROM comprobantes nc
+                      WHERE nc.comprobante_asociado_id = c.id
+                      AND nc.tipoComprobante = 'NC'
+                  )";
+
+            if (zonaId.HasValue)
+            {
+                pagosQuery += " AND z.id = @ZonaId";
+            }
+
             using var connection = _context.CreateConnection();
 
             var comprobantesData = await connection.QueryAsync<dynamic>(comprobantesQuery, new { Mes = mes, Anio = anio, ZonaId = zonaId });
             var cuotasData = await connection.QueryAsync<dynamic>(cuotasQuery, new { Mes = mes, Anio = anio, ZonaId = zonaId });
+            var pagosData = await connection.QueryAsync<dynamic>(pagosQuery, new { Mes = mes, Anio = anio, ZonaId = zonaId });
 
             var resultado = new DeudoresReporteDto
             {
@@ -582,14 +607,29 @@ namespace BookstoreAPI.Repositories
                 .GroupBy(c => (int)c.Comprobante_Id)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            // Recopilar todos los períodos únicos
-            var periodosSet = new HashSet<string>();
+            // Agrupar pagos por comprobante
+            var pagosPorComprobante = pagosData
+                .GroupBy(p => (int)p.Comprobante_Id)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            // Columnas: C.Entrega (mes del filtro) + 10 meses consecutivos + Otros
+            var periodoFiltro = new DateTime(anio, mes, 1).ToString("MM/yyyy");
+            var periodosColumnas = new List<string>();
+            periodosColumnas.Add("C.Entrega"); // mes del filtro = contraentrega
+            var periodosMap = new Dictionary<string, string>(); // MM/yyyy -> nombre columna
+            periodosMap[periodoFiltro] = "C.Entrega";
+            for (int i = 1; i <= 10; i++)
+            {
+                var fecha = new DateTime(anio, mes, 1).AddMonths(i);
+                var key = fecha.ToString("MM/yyyy");
+                periodosColumnas.Add(key);
+                periodosMap[key] = key;
+            }
 
             foreach (var comp in comprobantesData)
             {
                 var comprobanteId = (int)comp.Id;
 
-                // Obtener cuotas de este comprobante
                 var cuotasComprobante = cuotasPorComprobante.TryGetValue(comprobanteId, out var cuotas)
                     ? cuotas.ToList()
                     : new List<dynamic>();
@@ -613,47 +653,62 @@ namespace BookstoreAPI.Repositories
                     Cuotas = new List<CuotaDeudorDto>()
                 };
 
-                // Agregar todas las cuotas (incluyendo cuota 0)
-                foreach (var cuota in cuotasComprobante)
-                {
-                    var numeroCuota = (int)cuota.NumeroCuota;
-                    var fechaCuota = (DateTime?)cuota.Fecha;
-                    // Cuota 0 = Contra Entrega, las demás usan formato MM/yyyy
-                    var periodo = numeroCuota == 0 ? "C.Entrega" : (fechaCuota?.ToString("MM/yyyy") ?? "");
-                    periodosSet.Add(periodo);
+                // Agrupar pagos por período (mes/año de fecha de pago)
+                var pagosComprobante = pagosPorComprobante.TryGetValue(comprobanteId, out var pagos)
+                    ? pagos.ToList()
+                    : new List<dynamic>();
 
+                var pagadoPorPeriodo = new Dictionary<string, decimal>();
+                decimal pagadoOtros = 0;
+
+                foreach (var pago in pagosComprobante)
+                {
+                    var fechaPago = (DateTime)pago.FechaPago;
+                    var importePago = (decimal)pago.ImportePago;
+                    var periodoRaw = fechaPago.ToString("MM/yyyy");
+
+                    if (periodosMap.TryGetValue(periodoRaw, out var periodoCol))
+                    {
+                        if (!pagadoPorPeriodo.ContainsKey(periodoCol))
+                            pagadoPorPeriodo[periodoCol] = 0;
+                        pagadoPorPeriodo[periodoCol] += importePago;
+                    }
+                    else
+                    {
+                        pagadoOtros += importePago;
+                    }
+                }
+
+                foreach (var kvp in pagadoPorPeriodo)
+                {
                     deudor.Cuotas.Add(new CuotaDeudorDto
                     {
-                        CuotaId = (int)cuota.Id,
-                        Periodo = periodo,
-                        Importe = (decimal)cuota.Importe,
-                        ImportePagado = (decimal)cuota.ImportePagado,
-                        Estado = cuota.Estado ?? "PEN"
+                        Periodo = kvp.Key,
+                        ImportePagado = kvp.Value
                     });
                 }
 
-                // Calcular saldo: Total - Anticipo - todas las cuotas pagadas
-                var totalPagado = deudor.Anticipo + deudor.Cuotas.Sum(c => c.ImportePagado);
-                deudor.Saldo = deudor.TotalComprobante - totalPagado;
+                if (pagadoOtros != 0)
+                {
+                    deudor.Cuotas.Add(new CuotaDeudorDto
+                    {
+                        Periodo = "Otros",
+                        ImportePagado = pagadoOtros
+                    });
+                }
+
+                // Calcular saldo total
+                var totalPagadoCuotas = cuotasComprobante.Sum(c => (decimal)c.ImportePagado);
+                deudor.Saldo = deudor.TotalComprobante - deudor.Anticipo - totalPagadoCuotas;
 
                 resultado.Deudores.Add(deudor);
             }
 
-            // Ordenar períodos: primero "C.Entrega", luego cronológicamente
-            resultado.PeriodosCuotas = periodosSet
-                .OrderBy(p =>
-                {
-                    // C.Entrega siempre primero
-                    if (p == "C.Entrega") return -1;
+            // Siempre mostrar todas las columnas: C.Entrega + 10 meses + Otros
+            var periodosFinales = new List<string>(periodosColumnas);
+            periodosFinales.Add("Otros");
 
-                    var parts = p.Split('/');
-                    if (parts.Length == 2 && int.TryParse(parts[0], out int m) && int.TryParse(parts[1], out int a))
-                    {
-                        return a * 100 + m;
-                    }
-                    return 0;
-                })
-                .ToList();
+            resultado.PeriodosCuotas = periodosFinales;
 
             return resultado;
         }

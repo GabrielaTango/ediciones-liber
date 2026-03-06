@@ -52,18 +52,22 @@ namespace BookstoreAPI.Repositories
 
         public async Task DeleteByComprobanteIdAsync(int comprobanteId, IDbConnection connection, IDbTransaction transaction)
         {
-            const string query = "DELETE FROM cuotas WHERE comprobante_id = @ComprobanteId";
-            await connection.ExecuteAsync(query, new { ComprobanteId = comprobanteId }, transaction);
+            const string deletePagos = "DELETE FROM pagos_cuotas WHERE Cuota_Id IN (SELECT Id FROM cuotas WHERE comprobante_id = @ComprobanteId)";
+            const string deleteCuotas = "DELETE FROM cuotas WHERE comprobante_id = @ComprobanteId";
+            await connection.ExecuteAsync(deletePagos, new { ComprobanteId = comprobanteId }, transaction);
+            await connection.ExecuteAsync(deleteCuotas, new { ComprobanteId = comprobanteId }, transaction);
         }
 
         public async Task DeleteByComprobanteIdAsync(int comprobanteId)
         {
-            const string query = "DELETE FROM cuotas WHERE comprobante_id = @ComprobanteId";
+            const string deletePagos = "DELETE FROM pagos_cuotas WHERE Cuota_Id IN (SELECT Id FROM cuotas WHERE comprobante_id = @ComprobanteId)";
+            const string deleteCuotas = "DELETE FROM cuotas WHERE comprobante_id = @ComprobanteId";
             using var connection = _context.CreateConnection();
-            await connection.ExecuteAsync(query, new { ComprobanteId = comprobanteId });
+            await connection.ExecuteAsync(deletePagos, new { ComprobanteId = comprobanteId });
+            await connection.ExecuteAsync(deleteCuotas, new { ComprobanteId = comprobanteId });
         }
 
-        public async Task<IEnumerable<CuotaListadoDto>> GetCuotasByFiltrosAsync(int? zonaId, int? mes, int? anio)
+        public async Task<IEnumerable<CuotaListadoDto>> GetCuotasByFiltrosAsync(int? zonaId, DateTime? fechaCorte)
         {
             var query = @"
                 SELECT
@@ -91,20 +95,50 @@ namespace BookstoreAPI.Repositories
                 query += " AND z.id = @ZonaId";
             }
 
-            if (mes.HasValue)
+            if (fechaCorte.HasValue)
             {
-                query += " AND MONTH(cu.fecha) = @Mes";
+                query += " AND cu.fecha <= @FechaCorte";
             }
 
-            if (anio.HasValue)
-            {
-                query += " AND YEAR(cu.fecha) = @Anio";
-            }
-
-            query += " ORDER BY FechaCuota, ClienteNombre, cu.numero_cuota, cu.id";
+            query += " ORDER BY ClienteNombre, c.numeroComprobante, cu.numero_cuota, cu.id";
 
             using var connection = _context.CreateConnection();
-            var cuotas = await connection.QueryAsync<CuotaListadoDto>(query, new { ZonaId = zonaId, Mes = mes, Anio = anio });
+            var cuotas = (await connection.QueryAsync<CuotaListadoDto>(query, new { ZonaId = zonaId, FechaCorte = fechaCorte })).ToList();
+
+            if (cuotas.Any())
+            {
+                var cuotaIds = cuotas.Select(c => c.Id).ToList();
+                const string pagosQuery = @"
+                    SELECT
+                        Id,
+                        Cuota_Id,
+                        NroReferencia,
+                        Fecha,
+                        Importe
+                    FROM pagos_cuotas
+                    WHERE Cuota_Id IN @CuotaIds
+                    ORDER BY Fecha, Id";
+
+                var pagos = await connection.QueryAsync<dynamic>(pagosQuery, new { CuotaIds = cuotaIds });
+
+                var pagosDict = pagos.GroupBy(p => (int)p.Cuota_Id)
+                    .ToDictionary(g => g.Key, g => g.Select(p => new PagoCuotaDto
+                    {
+                        Id = (int)p.Id,
+                        NroReferencia = (string)p.NroReferencia,
+                        Fecha = (DateTime)p.Fecha,
+                        Importe = (decimal)p.Importe
+                    }).ToList());
+
+                foreach (var cuota in cuotas)
+                {
+                    if (pagosDict.TryGetValue(cuota.Id, out var cuotaPagos))
+                    {
+                        cuota.Pagos = cuotaPagos;
+                    }
+                }
+            }
+
             return cuotas;
         }
 
@@ -160,9 +194,175 @@ namespace BookstoreAPI.Repositories
 
         public async Task DeletePendientesByComprobanteIdAsync(int comprobanteId)
         {
-            const string query = "DELETE FROM cuotas WHERE comprobante_id = @ComprobanteId AND estado != 'PAG'";
+            const string deletePagos = "DELETE FROM pagos_cuotas WHERE Cuota_Id IN (SELECT Id FROM cuotas WHERE comprobante_id = @ComprobanteId AND estado != 'PAG')";
+            const string deleteCuotas = "DELETE FROM cuotas WHERE comprobante_id = @ComprobanteId AND estado != 'PAG'";
             using var connection = _context.CreateConnection();
-            await connection.ExecuteAsync(query, new { ComprobanteId = comprobanteId });
+            await connection.ExecuteAsync(deletePagos, new { ComprobanteId = comprobanteId });
+            await connection.ExecuteAsync(deleteCuotas, new { ComprobanteId = comprobanteId });
+        }
+
+        public async Task<PagoCuota> CreatePagoAsync(int cuotaId, PagoCuota pago)
+        {
+            const string insertQuery = @"
+                INSERT INTO pagos_cuotas
+                (Cuota_Id, NroReferencia, Fecha, Importe)
+                VALUES
+                (@Cuota_Id, @NroReferencia, @Fecha, @Importe);
+                SELECT LAST_INSERT_ID();";
+
+            const string updateCuotaQuery = @"
+                UPDATE cuotas
+                SET importe_pagado = (
+                        SELECT COALESCE(SUM(Importe), 0)
+                        FROM pagos_cuotas
+                        WHERE Cuota_Id = @CuotaId
+                    ),
+                    estado = CASE
+                        WHEN (SELECT COALESCE(SUM(Importe), 0) FROM pagos_cuotas WHERE Cuota_Id = @CuotaId) >= importe THEN 'PAG'
+                        WHEN (SELECT COALESCE(SUM(Importe), 0) FROM pagos_cuotas WHERE Cuota_Id = @CuotaId) > 0 THEN 'PAR'
+                        ELSE 'PEN'
+                    END
+                WHERE Id = @CuotaId";
+
+            using var connection = _context.CreateConnection();
+            connection.Open();
+            using var transaction = connection.BeginTransaction();
+
+            try
+            {
+                pago.Cuota_Id = cuotaId;
+                var id = await connection.ExecuteScalarAsync<int>(insertQuery, pago, transaction);
+                pago.Id = id;
+
+                await connection.ExecuteAsync(updateCuotaQuery, new { CuotaId = cuotaId }, transaction);
+
+                transaction.Commit();
+                return pago;
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        public async Task<bool> DeletePagoAsync(int pagoId)
+        {
+            const string getCuotaIdQuery = "SELECT Cuota_Id FROM pagos_cuotas WHERE Id = @PagoId";
+
+            const string deleteQuery = "DELETE FROM pagos_cuotas WHERE Id = @PagoId";
+
+            const string updateCuotaQuery = @"
+                UPDATE cuotas
+                SET importe_pagado = (
+                        SELECT COALESCE(SUM(Importe), 0)
+                        FROM pagos_cuotas
+                        WHERE Cuota_Id = @CuotaId
+                    ),
+                    estado = CASE
+                        WHEN (SELECT COALESCE(SUM(Importe), 0) FROM pagos_cuotas WHERE Cuota_Id = @CuotaId) >= importe THEN 'PAG'
+                        WHEN (SELECT COALESCE(SUM(Importe), 0) FROM pagos_cuotas WHERE Cuota_Id = @CuotaId) > 0 THEN 'PAR'
+                        ELSE 'PEN'
+                    END
+                WHERE Id = @CuotaId";
+
+            using var connection = _context.CreateConnection();
+            connection.Open();
+            using var transaction = connection.BeginTransaction();
+
+            try
+            {
+                var cuotaId = await connection.QueryFirstOrDefaultAsync<int?>(getCuotaIdQuery, new { PagoId = pagoId }, transaction);
+                if (!cuotaId.HasValue) return false;
+
+                var rows = await connection.ExecuteAsync(deleteQuery, new { PagoId = pagoId }, transaction);
+
+                await connection.ExecuteAsync(updateCuotaQuery, new { CuotaId = cuotaId.Value }, transaction);
+
+                transaction.Commit();
+                return rows > 0;
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        public async Task CreatePagoComprobanteAsync(int comprobanteId, string nroReferencia, decimal importe, DateTime? fecha = null)
+        {
+            const string getCuotasQuery = @"
+                SELECT
+                    Id,
+                    comprobante_id AS Comprobante_Id,
+                    numero_cuota AS NumeroCuota,
+                    fecha AS Fecha,
+                    COALESCE(importe, 0) AS Importe,
+                    COALESCE(importe_pagado, 0) AS ImportePagado,
+                    estado AS Estado
+                FROM cuotas
+                WHERE comprobante_id = @ComprobanteId
+                  AND estado != 'PAG'
+                ORDER BY fecha, numero_cuota";
+
+            const string insertPagoQuery = @"
+                INSERT INTO pagos_cuotas (Cuota_Id, NroReferencia, Fecha, Importe)
+                VALUES (@CuotaId, @NroReferencia, @Fecha, @Importe);";
+
+            const string updateCuotaQuery = @"
+                UPDATE cuotas
+                SET importe_pagado = (
+                        SELECT COALESCE(SUM(Importe), 0)
+                        FROM pagos_cuotas
+                        WHERE Cuota_Id = @CuotaId
+                    ),
+                    estado = CASE
+                        WHEN (SELECT COALESCE(SUM(Importe), 0) FROM pagos_cuotas WHERE Cuota_Id = @CuotaId) >= importe THEN 'PAG'
+                        WHEN (SELECT COALESCE(SUM(Importe), 0) FROM pagos_cuotas WHERE Cuota_Id = @CuotaId) > 0 THEN 'PAR'
+                        ELSE 'PEN'
+                    END
+                WHERE Id = @CuotaId";
+
+            using var connection = _context.CreateConnection();
+            connection.Open();
+            using var transaction = connection.BeginTransaction();
+
+            try
+            {
+                var cuotas = (await connection.QueryAsync<Cuota>(getCuotasQuery, new { ComprobanteId = comprobanteId }, transaction)).ToList();
+
+                var restante = importe;
+                var hoy = fecha ?? DateTime.Today;
+
+                foreach (var cuota in cuotas)
+                {
+                    if (restante <= 0) break;
+
+                    var saldoCuota = (cuota.Importe ?? 0) - (cuota.ImportePagado ?? 0);
+                    if (saldoCuota <= 0) continue;
+
+                    var montoAplicar = Math.Min(restante, saldoCuota);
+
+                    await connection.ExecuteAsync(insertPagoQuery, new
+                    {
+                        CuotaId = cuota.Id,
+                        NroReferencia = nroReferencia,
+                        Fecha = hoy,
+                        Importe = montoAplicar
+                    }, transaction);
+
+                    await connection.ExecuteAsync(updateCuotaQuery, new { CuotaId = cuota.Id }, transaction);
+
+                    restante -= montoAplicar;
+                }
+
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
         }
 
     }

@@ -17,11 +17,9 @@ namespace BookstoreAPI.DTOs
 
     public class CuotaDeudorDto
     {
-        public int CuotaId { get; set; }
-        public string Periodo { get; set; } = string.Empty; // formato MM/YYYY
-        public decimal Importe { get; set; }
-        public decimal ImportePagado { get; set; }
-        public string Estado { get; set; } = string.Empty;
+        public string Periodo { get; set; } = string.Empty; // formato MM/YYYY o "Otras"
+        public decimal Saldo { get; set; } // sumatoria de (importe - importePagado) de las cuotas en ese período
+        public decimal ImportePagado { get; set; } // sumatoria de importePagado de las cuotas en ese período
     }
 
     public class DeudoresReporteDto

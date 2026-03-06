@@ -1,9 +1,7 @@
 export interface CuotaDeudor {
-  cuotaId: number;
-  periodo: string; // formato MM/YYYY
-  importe: number;
-  importePagado: number;
-  estado: string;
+  periodo: string; // formato MM/YYYY o "Otras"
+  saldo: number;   // sumatoria de saldos de cuotas en ese período
+  importePagado: number; // sumatoria de importes pagados en ese período
 }
 
 export interface DeudorItem {

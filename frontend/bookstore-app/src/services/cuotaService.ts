@@ -1,25 +1,32 @@
 import api from './api';
-import type { CuotaListado, UpdateImportePagadoDto } from '../types/cuota';
+import type { CuotaListado, CreatePagoCuotaDto, PagoCuotaDto, CreatePagoComprobanteDto } from '../types/cuota';
 
 export interface CuotaFiltros {
   zonaId?: number;
-  mes?: number;
-  anio?: number;
+  fechaCorte?: string;
 }
 
 export const cuotaService = {
   getAll: async (filtros?: CuotaFiltros): Promise<CuotaListado[]> => {
     const params = new URLSearchParams();
     if (filtros?.zonaId) params.append('zonaId', filtros.zonaId.toString());
-    if (filtros?.mes) params.append('mes', filtros.mes.toString());
-    if (filtros?.anio) params.append('anio', filtros.anio.toString());
+    if (filtros?.fechaCorte) params.append('fechaCorte', filtros.fechaCorte);
 
     const queryString = params.toString();
     const response = await api.get<CuotaListado[]>(`/cuotas${queryString ? `?${queryString}` : ''}`);
     return response.data;
   },
 
-  updateImportePagado: async (id: number, dto: UpdateImportePagadoDto): Promise<void> => {
-    await api.put(`/cuotas/${id}/importe-pagado`, dto);
+  createPago: async (cuotaId: number, data: CreatePagoCuotaDto): Promise<PagoCuotaDto> => {
+    const response = await api.post<PagoCuotaDto>(`/cuotas/${cuotaId}/pagos`, data);
+    return response.data;
+  },
+
+  deletePago: async (pagoId: number): Promise<void> => {
+    await api.delete(`/cuotas/pagos/${pagoId}`);
+  },
+
+  createPagoComprobante: async (comprobanteId: number, data: CreatePagoComprobanteDto): Promise<void> => {
+    await api.post(`/cuotas/comprobante/${comprobanteId}/pago`, data);
   },
 };

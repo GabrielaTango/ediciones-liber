@@ -1,4 +1,5 @@
 using BookstoreAPI.DTOs;
+using BookstoreAPI.Models;
 using BookstoreAPI.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,11 +19,11 @@ namespace BookstoreAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetCuotas([FromQuery] int? zonaId, [FromQuery] int? mes, [FromQuery] int? anio)
+        public async Task<IActionResult> GetCuotas([FromQuery] int? zonaId, [FromQuery] DateTime? fechaCorte)
         {
             try
             {
-                var cuotas = await _cuotaRepository.GetCuotasByFiltrosAsync(zonaId, mes, anio);
+                var cuotas = await _cuotaRepository.GetCuotasByFiltrosAsync(zonaId, fechaCorte);
                 return Ok(cuotas);
             }
             catch (Exception ex)
@@ -32,23 +33,66 @@ namespace BookstoreAPI.Controllers
             }
         }
 
-        [HttpPut("{id}/importe-pagado")]
-        public async Task<IActionResult> UpdateImportePagado(int id, [FromBody] UpdateImportePagadoDto dto)
+        [HttpPost("{cuotaId}/pagos")]
+        public async Task<IActionResult> CreatePago(int cuotaId, [FromBody] CreatePagoCuotaDto dto)
         {
             try
             {
-                // Todas las cuotas (incluyendo cuota 0/contraentrega) están en la tabla cuotas
-                var updated = await _cuotaRepository.UpdateImportePagadoAsync(id, dto.ImportePagado);
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-                if (!updated)
-                    return NotFound(new { message = $"Cuota con ID {id} no encontrada" });
+                var pago = new PagoCuota
+                {
+                    NroReferencia = dto.NroReferencia,
+                    Fecha = dto.Fecha,
+                    Importe = dto.Importe
+                };
 
-                return Ok(new { message = "Importe pagado actualizado correctamente" });
+                var created = await _cuotaRepository.CreatePagoAsync(cuotaId, pago);
+                return Ok(created);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al actualizar importe pagado de cuota {Id}", id);
-                return StatusCode(500, new { message = "Error al actualizar importe pagado", error = ex.Message });
+                _logger.LogError(ex, "Error al registrar pago de cuota {CuotaId}", cuotaId);
+                return StatusCode(500, new { message = "Error al registrar pago", error = ex.Message });
+            }
+        }
+
+        [HttpPost("comprobante/{comprobanteId}/pago")]
+        public async Task<IActionResult> CreatePagoComprobante(int comprobanteId, [FromBody] CreatePagoComprobanteDto dto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                if (dto.Importe <= 0)
+                    return BadRequest(new { message = "El importe debe ser mayor a 0" });
+
+                await _cuotaRepository.CreatePagoComprobanteAsync(comprobanteId, dto.NroReferencia, dto.Importe, dto.Fecha);
+                return Ok(new { message = "Pago imputado correctamente" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al registrar pago de comprobante {ComprobanteId}", comprobanteId);
+                return StatusCode(500, new { message = "Error al registrar pago", error = ex.Message });
+            }
+        }
+
+        [HttpDelete("pagos/{pagoId}")]
+        public async Task<IActionResult> DeletePago(int pagoId)
+        {
+            try
+            {
+                var deleted = await _cuotaRepository.DeletePagoAsync(pagoId);
+                if (!deleted)
+                    return NotFound(new { message = $"Pago con ID {pagoId} no encontrado" });
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al eliminar pago de cuota");
+                return StatusCode(500, new { message = "Error al eliminar pago", error = ex.Message });
             }
         }
     }

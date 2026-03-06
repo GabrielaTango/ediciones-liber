@@ -493,7 +493,7 @@ const ClienteFormPage = () => {
                   type="text"
                   className="form-control"
                   value={getLocalidadFromSubZona()}
-                  placeholder="Se completa automáticamente con la SubZona"
+                  placeholder=""
                   readOnly
                   disabled
                 />
