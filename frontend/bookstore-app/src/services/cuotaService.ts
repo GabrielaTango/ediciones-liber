@@ -4,6 +4,9 @@ import type { CuotaListado, CreatePagoCuotaDto, PagoCuotaDto, CreatePagoComproba
 export interface CuotaFiltros {
   zonaId?: number;
   fechaCorte?: string;
+  vendedorId?: number;
+  comprobante?: string;
+  clienteId?: number;
 }
 
 export const cuotaService = {
@@ -11,6 +14,9 @@ export const cuotaService = {
     const params = new URLSearchParams();
     if (filtros?.zonaId) params.append('zonaId', filtros.zonaId.toString());
     if (filtros?.fechaCorte) params.append('fechaCorte', filtros.fechaCorte);
+    if (filtros?.vendedorId) params.append('vendedorId', filtros.vendedorId.toString());
+    if (filtros?.comprobante) params.append('comprobante', filtros.comprobante);
+    if (filtros?.clienteId) params.append('clienteId', filtros.clienteId.toString());
 
     const queryString = params.toString();
     const response = await api.get<CuotaListado[]>(`/cuotas${queryString ? `?${queryString}` : ''}`);

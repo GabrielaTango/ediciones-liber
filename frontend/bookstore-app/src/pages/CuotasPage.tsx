@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { cuotaService } from '../services/cuotaService';
 import { referenceService } from '../services/referenceService';
+import { clienteService } from '../services/clienteService';
 import type { CuotaListado } from '../types/cuota';
-import type { Zona } from '../types/references';
+import type { Zona, Vendedor } from '../types/references';
+import type { Cliente } from '../types/cliente';
 import { showSuccessAlert, showErrorAlert, showDeleteConfirmDialog } from '../utils/sweetalert';
 import { PageHeader } from '../components/PageHeader';
 import { GradientButton } from '../components/GradientButton';
@@ -27,7 +29,12 @@ const CuotasPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [cuotas, setCuotas] = useState<CuotaListado[]>([]);
   const [zonas, setZonas] = useState<Zona[]>([]);
+  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [zonaId, setZonaId] = useState<number | ''>('');
+  const [vendedorId, setVendedorId] = useState<number | ''>('');
+  const [clienteId, setClienteId] = useState<number | ''>('');
+  const [comprobante, setComprobante] = useState<string>('');
   const [fechaCorte, setFechaCorte] = useState<string>(new Date().toISOString().split('T')[0]);
   const [mostrarPagadas, setMostrarPagadas] = useState(false);
 
@@ -49,7 +56,7 @@ const CuotasPage = () => {
 
   useEffect(() => {
     loadCuotas();
-  }, [zonaId, fechaCorte]);
+  }, [zonaId, fechaCorte, vendedorId, comprobante, clienteId]);
 
   useEffect(() => {
     if (editingComprobanteId !== null && inputRef.current) {
@@ -60,10 +67,16 @@ const CuotasPage = () => {
 
   const loadZonas = async () => {
     try {
-      const data = await referenceService.getZonas();
-      setZonas(data);
+      const [zonasData, vendedoresData, clientesData] = await Promise.all([
+        referenceService.getZonas(),
+        referenceService.getVendedores(),
+        clienteService.getAll(),
+      ]);
+      setZonas(zonasData);
+      setVendedores(vendedoresData);
+      setClientes(clientesData);
     } catch (err) {
-      console.error('Error loading zonas:', err);
+      console.error('Error loading references:', err);
     }
   };
 
@@ -74,6 +87,9 @@ const CuotasPage = () => {
       const data = await cuotaService.getAll({
         zonaId: zonaId || undefined,
         fechaCorte: fechaCorte || undefined,
+        vendedorId: vendedorId || undefined,
+        comprobante: comprobante || undefined,
+        clienteId: clienteId || undefined,
       });
       setCuotas(data);
     } catch (err) {
@@ -290,8 +306,8 @@ const CuotasPage = () => {
       {/* Filtros */}
       <div className="card mb-4">
         <div className="card-body">
-          <div className="row align-items-end">
-            <div className="col-md-3 mb-3 mb-md-0">
+          <div className="row align-items-end mb-3">
+            <div className="col-md-3">
               <label className="form-label">Zona</label>
               <select
                 className="form-select"
@@ -306,7 +322,49 @@ const CuotasPage = () => {
                 ))}
               </select>
             </div>
-            <div className="col-md-2 mb-3 mb-md-0">
+            <div className="col-md-3">
+              <label className="form-label">Vendedor</label>
+              <select
+                className="form-select"
+                value={vendedorId}
+                onChange={(e) => setVendedorId(e.target.value ? parseInt(e.target.value, 10) : '')}
+              >
+                <option value="">Todos los vendedores</option>
+                {vendedores.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.descripcion}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Cliente</label>
+              <select
+                className="form-select"
+                value={clienteId}
+                onChange={(e) => setClienteId(e.target.value ? parseInt(e.target.value, 10) : '')}
+              >
+                <option value="">Todos los clientes</option>
+                {clientes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="row align-items-end">
+            <div className="col-md-3">
+              <label className="form-label">Comprobante</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Nº comprobante"
+                value={comprobante}
+                onChange={(e) => setComprobante(e.target.value)}
+              />
+            </div>
+            <div className="col-md-3">
               <label className="form-label">Fecha de Corte</label>
               <input
                 type="date"
@@ -315,7 +373,7 @@ const CuotasPage = () => {
                 onChange={(e) => setFechaCorte(e.target.value)}
               />
             </div>
-            <div className="col-md-2">
+            <div className="col-md-6 d-flex align-items-end gap-3">
               <GradientButton
                 icon={loading ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-sync'}
                 onClick={loadCuotas}
@@ -323,8 +381,6 @@ const CuotasPage = () => {
               >
                 {loading ? 'Cargando...' : 'Actualizar'}
               </GradientButton>
-            </div>
-            <div className="col-md-3 d-flex align-items-end">
               <div className="form-check">
                 <input
                   className="form-check-input"
@@ -334,7 +390,7 @@ const CuotasPage = () => {
                   onChange={(e) => setMostrarPagadas(e.target.checked)}
                 />
                 <label className="form-check-label" htmlFor="mostrarPagadas">
-                  Mostrar pagadas
+                  Pagadas
                 </label>
               </div>
             </div>

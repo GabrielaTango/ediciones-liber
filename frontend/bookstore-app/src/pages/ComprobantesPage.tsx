@@ -33,6 +33,7 @@ const ComprobantesPage = () => {
   const [selectedCliente, setSelectedCliente] = useState<SelectOption | null>(null);
   const [selectedVendedor, setSelectedVendedor] = useState<SelectOption | null>(null);
   const [tipoComprobante, setTipoComprobante] = useState<string>('');
+  const [filtroComprobante, setFiltroComprobante] = useState<string>('');
   const [fechaDesde, setFechaDesde] = useState<string>(searchParams.get('fechaDesde') || '');
   const [fechaHasta, setFechaHasta] = useState<string>(searchParams.get('fechaHasta') || '');
   const [activeFilters, setActiveFilters] = useState<ComprobanteFilters | null>(null);
@@ -89,6 +90,7 @@ const ComprobantesPage = () => {
     if (selectedCliente) filters.clienteId = selectedCliente.value;
     if (selectedVendedor) filters.vendedorId = selectedVendedor.value;
     if (tipoComprobante) filters.tipoComprobante = tipoComprobante;
+    if (filtroComprobante) filters.comprobante = filtroComprobante;
     if (fechaDesde) filters.fechaDesde = fechaDesde;
     if (fechaHasta) filters.fechaHasta = fechaHasta;
 
@@ -102,6 +104,7 @@ const ComprobantesPage = () => {
     setSelectedCliente(null);
     setSelectedVendedor(null);
     setTipoComprobante('');
+    setFiltroComprobante('');
     setFechaDesde('');
     setFechaHasta('');
     setActiveFilters(null);
@@ -235,6 +238,16 @@ const ComprobantesPage = () => {
               </select>
             </div>
             <div className="col-md-2">
+              <label className="form-label">Comprobante</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Nº comprobante"
+                value={filtroComprobante}
+                onChange={(e) => setFiltroComprobante(e.target.value)}
+              />
+            </div>
+            <div className="col-md-2">
               <label className="form-label">Fecha Desde</label>
               <input
                 type="date"
@@ -252,7 +265,7 @@ const ComprobantesPage = () => {
                 onChange={(e) => setFechaHasta(e.target.value)}
               />
             </div>
-            <div className="col-md-4 d-flex align-items-end gap-2">
+            <div className="col-md-2 d-flex align-items-end gap-2">
               <button
                 className="btn btn-primary"
                 onClick={handleFilter}

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { comprobanteService } from '../services/comprobanteService';
 import { referenceService } from '../services/referenceService';
 import type { DeudoresReporte, DeudorItem } from '../types/deudores';
-import type { Zona } from '../types/references';
+import type { Zona, Vendedor } from '../types/references';
 import { PageHeader } from '../components/PageHeader';
 import { GradientButton } from '../components/GradientButton';
 
@@ -11,12 +11,14 @@ const DeudoresPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [reporte, setReporte] = useState<DeudoresReporte | null>(null);
   const [zonas, setZonas] = useState<Zona[]>([]);
+  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
 
   // Inicializar con el mes actual
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth() + 1);
   const [anio, setAnio] = useState(now.getFullYear());
   const [zonaId, setZonaId] = useState<number | ''>('');
+  const [vendedorId, setVendedorId] = useState<number | ''>('');
   const [filtroCliente, setFiltroCliente] = useState('');
   const [filtroComprobante, setFiltroComprobante] = useState('');
 
@@ -36,10 +38,14 @@ const DeudoresPage = () => {
 
   const loadZonas = async () => {
     try {
-      const data = await referenceService.getZonas();
-      setZonas(data);
+      const [zonasData, vendedoresData] = await Promise.all([
+        referenceService.getZonas(),
+        referenceService.getVendedores(),
+      ]);
+      setZonas(zonasData);
+      setVendedores(vendedoresData);
     } catch (err) {
-      console.error('Error loading zonas:', err);
+      console.error('Error loading references:', err);
     }
   };
 
@@ -47,7 +53,7 @@ const DeudoresPage = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await comprobanteService.getDeudores(mes, anio, zonaId || undefined);
+      const data = await comprobanteService.getDeudores(mes, anio, zonaId || undefined, vendedorId || undefined);
       setReporte(data);
     } catch (err) {
       setError('Error al cargar los datos de deudores');
@@ -112,8 +118,8 @@ const DeudoresPage = () => {
       {/* Filtros */}
       <div className="card mb-4">
         <div className="card-body">
-          <div className="row align-items-end">
-            <div className="col-md-3 mb-3 mb-md-0">
+          <div className="row align-items-end mb-3">
+            <div className="col-md-4">
               <label className="form-label">Zona</label>
               <select
                 className="form-select"
@@ -128,7 +134,7 @@ const DeudoresPage = () => {
                 ))}
               </select>
             </div>
-            <div className="col-md-2 mb-3 mb-md-0">
+            <div className="col-md-4">
               <label className="form-label">Mes</label>
               <select
                 className="form-select"
@@ -142,7 +148,7 @@ const DeudoresPage = () => {
                 ))}
               </select>
             </div>
-            <div className="col-md-2 mb-3 mb-md-0">
+            <div className="col-md-4">
               <label className="form-label">Año</label>
               <select
                 className="form-select"
@@ -156,17 +162,23 @@ const DeudoresPage = () => {
                 ))}
               </select>
             </div>
-            <div className="col-md-2">
-              <GradientButton
-                icon={loading ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-search'}
-                onClick={handleBuscar}
-                disabled={loading}
-              >
-                {loading ? 'Buscando...' : 'Buscar'}
-              </GradientButton>
-            </div>
           </div>
-          <div className="row mt-3">
+          <div className="row align-items-end">
+            <div className="col-md-3">
+              <label className="form-label">Vendedor</label>
+              <select
+                className="form-select"
+                value={vendedorId}
+                onChange={(e) => setVendedorId(e.target.value ? parseInt(e.target.value, 10) : '')}
+              >
+                <option value="">Todos los vendedores</option>
+                {vendedores.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.descripcion}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="col-md-3">
               <label className="form-label">Cliente</label>
               <input
@@ -186,6 +198,15 @@ const DeudoresPage = () => {
                 value={filtroComprobante}
                 onChange={(e) => setFiltroComprobante(e.target.value)}
               />
+            </div>
+            <div className="col-md-3">
+              <GradientButton
+                icon={loading ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-search'}
+                onClick={handleBuscar}
+                disabled={loading}
+              >
+                {loading ? 'Buscando...' : 'Buscar'}
+              </GradientButton>
             </div>
           </div>
         </div>

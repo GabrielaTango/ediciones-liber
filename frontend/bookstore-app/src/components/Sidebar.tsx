@@ -310,6 +310,18 @@ const Sidebar = ({ collapsed, onToggleCollapse }: SidebarProps) => {
               <span>Categorías Gasto</span>
             </Link>
           </li>
+
+          {/* Configuración */}
+          <li style={{ marginTop: '2rem' }}>
+            <Link
+              to="/configuracion"
+              className={isActive('/configuracion') ? 'active' : ''}
+              onClick={closeMobileMenu}
+            >
+              <Icon name="fa-solid fa-gear" />
+              <span>Configuración</span>
+            </Link>
+          </li>
         </ul>
 
         {/* User Section (Optional - commented out for now) */}

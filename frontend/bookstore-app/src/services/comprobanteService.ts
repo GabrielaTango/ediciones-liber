@@ -12,6 +12,7 @@ export interface ComprobanteFilters {
   fechaDesde?: string;
   fechaHasta?: string;
   vendedorId?: number;
+  comprobante?: string;
 }
 
 export const comprobanteService = {
@@ -23,6 +24,7 @@ export const comprobanteService = {
     if (filters?.fechaDesde) params.append('fechaDesde', filters.fechaDesde);
     if (filters?.fechaHasta) params.append('fechaHasta', filters.fechaHasta);
     if (filters?.vendedorId) params.append('vendedorId', filters.vendedorId.toString());
+    if (filters?.comprobante) params.append('comprobante', filters.comprobante);
 
     const queryString = params.toString();
     const url = queryString ? `/comprobantes?${queryString}` : '/comprobantes';
@@ -81,6 +83,7 @@ export const comprobanteService = {
     if (filters.fechaDesde) params.append('fechaDesde', filters.fechaDesde);
     if (filters.fechaHasta) params.append('fechaHasta', filters.fechaHasta);
     if (filters.vendedorId) params.append('vendedorId', filters.vendedorId.toString());
+    if (filters.comprobante) params.append('comprobante', filters.comprobante);
 
     const pdfUrl = `${API_BASE_URL}/comprobantes/batch-pdf?${params.toString()}`;
     window.open(pdfUrl, '_blank');
@@ -94,6 +97,7 @@ export const comprobanteService = {
     if (filters.fechaDesde) params.append('fechaDesde', filters.fechaDesde);
     if (filters.fechaHasta) params.append('fechaHasta', filters.fechaHasta);
     if (filters.vendedorId) params.append('vendedorId', filters.vendedorId.toString());
+    if (filters.comprobante) params.append('comprobante', filters.comprobante);
 
     const pdfUrl = `${API_BASE_URL}/comprobantes/batch-cupones-pdf?${params.toString()}`;
     window.open(pdfUrl, '_blank');
@@ -114,11 +118,12 @@ export const comprobanteService = {
     window.open(pdfUrl, '_blank');
   },
 
-  getDeudores: async (mes: number, anio: number, zonaId?: number): Promise<DeudoresReporte> => {
+  getDeudores: async (mes: number, anio: number, zonaId?: number, vendedorId?: number): Promise<DeudoresReporte> => {
     const params = new URLSearchParams();
     params.append('mes', mes.toString());
     params.append('anio', anio.toString());
     if (zonaId) params.append('zonaId', zonaId.toString());
+    if (vendedorId) params.append('vendedorId', vendedorId.toString());
 
     const response = await api.get<DeudoresReporte>(`/comprobantes/deudores?${params.toString()}`);
     return response.data;

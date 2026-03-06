@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams, useLocation, Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import Select from 'react-select';
@@ -59,6 +59,12 @@ const ComprobanteFormPage = () => {
     cantidad: 1,
     precio_Unitario: 0,
   });
+
+  // Refs para navegación con Enter en el modal de items
+  const articuloSelectRef = useRef<any>(null);
+  const cantidadRef = useRef<HTMLInputElement>(null);
+  const precioRef = useRef<HTMLInputElement>(null);
+  const agregarBtnRef = useRef<HTMLButtonElement>(null);
 
   // Cálculo de cuotas (se define ANTES de cargar items)
   const [anticipo, setAnticipo] = useState<number>(0);
@@ -898,12 +904,19 @@ const ComprobanteFormPage = () => {
               <div className="modal-body">
                 <FormGroup label="Artículo" required>
                   <Select<ArticuloOption>
+                    ref={articuloSelectRef}
                     options={articuloOptions}
                     value={selectedArticuloOption}
-                    onChange={handleArticuloSelect}
+                    onChange={(option) => {
+                      handleArticuloSelect(option);
+                      if (option) {
+                        setTimeout(() => cantidadRef.current?.focus(), 50);
+                      }
+                    }}
                     placeholder="Buscar artículo..."
                     isClearable
                     isSearchable
+                    autoFocus
                     noOptionsMessage={() => "No se encontraron artículos"}
                     loadingMessage={() => "Cargando..."}
                     classNamePrefix="react-select"
@@ -920,6 +933,7 @@ const ComprobanteFormPage = () => {
 
                 <FormGroup label="Cantidad" required>
                   <input
+                    ref={cantidadRef}
                     type="number"
                     className="form-control"
                     name="cantidad"
@@ -927,6 +941,7 @@ const ComprobanteFormPage = () => {
                     onChange={handleItemFormChange}
                     onBlur={(e) => { if (!e.target.value) setItemForm(f => ({ ...f, cantidad: 1 })); }}
                     onFocus={(e) => e.target.select()}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); precioRef.current?.focus(); } }}
                     min="1"
                     required
                   />
@@ -936,6 +951,7 @@ const ComprobanteFormPage = () => {
                   <div className="input-group">
                     <span className="input-group-text">$</span>
                     <input
+                      ref={precioRef}
                       type="number"
                       className="form-control"
                       name="precio_Unitario"
@@ -943,6 +959,7 @@ const ComprobanteFormPage = () => {
                       onChange={handleItemFormChange}
                       onBlur={(e) => { if (!e.target.value) setItemForm(f => ({ ...f, precio_Unitario: 0 })); }}
                       onFocus={(e) => e.target.select()}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); agregarBtnRef.current?.focus(); } }}
                       min="0"
                       step="0.01"
                       placeholder="0.00"
@@ -965,6 +982,7 @@ const ComprobanteFormPage = () => {
                   Cancelar
                 </button>
                 <GradientButton
+                  ref={agregarBtnRef}
                   onClick={handleSaveItem}
                   icon={editingItem ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-plus'}
                 >
