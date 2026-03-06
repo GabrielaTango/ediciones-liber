@@ -67,7 +67,14 @@ namespace BookstoreAPI.Repositories
             await connection.ExecuteAsync(deleteCuotas, new { ComprobanteId = comprobanteId });
         }
 
-        public async Task<IEnumerable<CuotaListadoDto>> GetCuotasByFiltrosAsync(int? zonaId, DateTime? fechaCorte)
+        public async Task CancelarByComprobanteIdAsync(int comprobanteId)
+        {
+            const string query = "UPDATE cuotas SET Estado = 'CAN' WHERE comprobante_id = @ComprobanteId";
+            using var connection = _context.CreateConnection();
+            await connection.ExecuteAsync(query, new { ComprobanteId = comprobanteId });
+        }
+
+        public async Task<IEnumerable<CuotaListadoDto>> GetCuotasByFiltrosAsync(int? zonaId, DateTime? fechaCorte, int? vendedorId = null, string? comprobante = null, int? clienteId = null)
         {
             var query = @"
                 SELECT
@@ -88,7 +95,7 @@ namespace BookstoreAPI.Repositories
                 INNER JOIN comprobantes c ON cu.comprobante_id = c.id
                 INNER JOIN clientes cl ON c.cliente_id = cl.Id
                 LEFT JOIN zonas z ON cl.Zona_Id = z.id
-                WHERE 1=1";
+                WHERE cu.estado != 'CAN'";
 
             if (zonaId.HasValue)
             {
@@ -100,10 +107,25 @@ namespace BookstoreAPI.Repositories
                 query += " AND cu.fecha <= @FechaCorte";
             }
 
+            if (vendedorId.HasValue)
+            {
+                query += " AND c.vendedor_id = @VendedorId";
+            }
+
+            if (!string.IsNullOrEmpty(comprobante))
+            {
+                query += " AND c.numeroComprobante LIKE @Comprobante";
+            }
+
+            if (clienteId.HasValue)
+            {
+                query += " AND cl.Id = @ClienteId";
+            }
+
             query += " ORDER BY ClienteNombre, c.numeroComprobante, cu.numero_cuota, cu.id";
 
             using var connection = _context.CreateConnection();
-            var cuotas = (await connection.QueryAsync<CuotaListadoDto>(query, new { ZonaId = zonaId, FechaCorte = fechaCorte })).ToList();
+            var cuotas = (await connection.QueryAsync<CuotaListadoDto>(query, new { ZonaId = zonaId, FechaCorte = fechaCorte, VendedorId = vendedorId, Comprobante = $"%{comprobante}%", ClienteId = clienteId })).ToList();
 
             if (cuotas.Any())
             {

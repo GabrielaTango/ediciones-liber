@@ -1,9 +1,7 @@
 using BookstoreAPI.DTOs;
 using BookstoreAPI.Models;
-using BookstoreAPI.Models.Afip;
 using BookstoreAPI.Repositories;
 using BookstoreAPI.Services.Afip;
-using Microsoft.Extensions.Options;
 
 namespace BookstoreAPI.Services
 {
@@ -13,19 +11,16 @@ namespace BookstoreAPI.Services
         private readonly ICuotaRepository _cuotaRepository;
         private readonly IAfipFacturacionService _afipService;
         private readonly ILogger<ComprobanteService> _logger;
-        private readonly IOptions<AfipConfig> _config;
         public ComprobanteService(
             IComprobanteRepository comprobanteRepository,
             ICuotaRepository cuotaRepository,
             IAfipFacturacionService afipService,
-            ILogger<ComprobanteService> logger,
-            IOptions<AfipConfig> config)
+            ILogger<ComprobanteService> logger)
         {
             _comprobanteRepository = comprobanteRepository;
             _cuotaRepository = cuotaRepository;
             _afipService = afipService;
             _logger = logger;
-            _config = config;
         }
 
         public async Task<IEnumerable<ComprobanteConDetallesDto>> GetAllAsync()
@@ -260,9 +255,10 @@ namespace BookstoreAPI.Services
             // Crear la Nota de Crédito en la base de datos
             var notaCreditoCreada = await _comprobanteRepository.CreateAsync(notaCredito, detalles);
 
-            // Eliminar las cuotas del comprobante original (ya no aplican)
-            _logger.LogInformation("Eliminando cuotas del comprobante cancelado {Id}", comprobanteId);
-            await _cuotaRepository.DeleteByComprobanteIdAsync(comprobanteId);
+            // Cancelar las cuotas y la factura original
+            _logger.LogInformation("Cancelando comprobante y cuotas del comprobante {Id}", comprobanteId);
+            await _cuotaRepository.CancelarByComprobanteIdAsync(comprobanteId);
+            await _comprobanteRepository.UpdateEstadoAsync(comprobanteId, "CAN");
 
             return await _comprobanteRepository.GetByIdAsync(notaCreditoCreada.Id)
                 ?? throw new Exception("Error al recuperar la Nota de Crédito creada");

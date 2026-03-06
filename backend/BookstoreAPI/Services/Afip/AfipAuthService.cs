@@ -1,8 +1,6 @@
 using BookstoreAPI.Models.Afip;
-using Microsoft.Extensions.Options;
+using BookstoreAPI.Repositories;
 using System.Globalization;
-using System.Security;
-using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -12,31 +10,37 @@ namespace BookstoreAPI.Services.Afip
 {
     public class AfipAuthService : IAfipAuthService
     {
-        private readonly AfipConfig _config;
+        private readonly IAfipConfigProvider _configProvider;
+        private readonly IConfiguracionRepository _configuracionRepo;
         private readonly ILogger<AfipAuthService> _logger;
         private static AfipTicketAcceso? _cachedTicket;
         private static readonly object _lock = new object();
-        private const string TA_FILE = "ta.xml";
+        private const string TA_DB_KEY = "Afip_TA";
 
-        public AfipAuthService(IOptions<AfipConfig> config, ILogger<AfipAuthService> logger)
+        public AfipAuthService(IAfipConfigProvider configProvider, IConfiguracionRepository configuracionRepo, ILogger<AfipAuthService> logger)
         {
-            _config = config.Value;
+            _configProvider = configProvider;
+            _configuracionRepo = configuracionRepo;
             _logger = logger;
         }
 
         public async Task<AfipTicketAcceso> GetTicketAccesoAsync()
         {
-            // Intentar cargar desde archivo si existe
-            if (_cachedTicket == null && File.Exists(TA_FILE))
+            // Intentar cargar desde DB si no hay cache
+            if (_cachedTicket == null)
             {
                 try
                 {
-                    _cachedTicket = CargarCredencialesDesdeArchivo();
-                    _logger.LogInformation("TA cargado desde archivo. Expira: {ExpirationTime}", _cachedTicket.ExpirationTime);
+                    var taXml = await _configuracionRepo.GetValueAsync(TA_DB_KEY);
+                    if (!string.IsNullOrEmpty(taXml))
+                    {
+                        _cachedTicket = ParsearTaXml(taXml);
+                        _logger.LogInformation("TA cargado desde base de datos. Expira: {ExpirationTime}", _cachedTicket.ExpirationTime);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "No se pudo cargar TA desde archivo");
+                    _logger.LogWarning(ex, "No se pudo cargar TA desde base de datos");
                 }
             }
 
@@ -49,20 +53,18 @@ namespace BookstoreAPI.Services.Afip
                 }
             }
 
+            var config = await _configProvider.GetConfigAsync();
             _logger.LogInformation("Solicitando nuevo ticket de acceso a AFIP");
 
             try
             {
-                // Generar Login Ticket Request
-                var loginTicketRequest = GenerateLoginTicketRequest();
-                _logger.LogInformation("LoginTicketRequest generado (longitud: {Length}): {Request}", loginTicketRequest.Length, loginTicketRequest);
+                var loginTicketRequest = GenerateLoginTicketRequest(config);
+                _logger.LogInformation("LoginTicketRequest generado (longitud: {Length})", loginTicketRequest.Length);
 
-                // Cargar certificado
-                var cert = LoadCertificateFromPfx(_config.PfxPath, _config.PfxPassword);
+                var cert = LoadCertificate(config);
                 _logger.LogInformation("Certificado cargado. Subject: {Subject}, Expira: {NotAfter}, HasPrivateKey: {HasPrivateKey}",
                     cert.Subject, cert.NotAfter, cert.HasPrivateKey);
 
-                // Convertir el Login Ticket Request a bytes, firmar y convertir a Base64
                 Encoding encodedMsg = Encoding.UTF8;
                 byte[] msgBytes = encodedMsg.GetBytes(loginTicketRequest);
                 byte[] encodedSignedCms = FirmaBytesMensaje(msgBytes, cert);
@@ -70,11 +72,18 @@ namespace BookstoreAPI.Services.Afip
 
                 _logger.LogInformation("LoginTicketRequest firmado exitosamente. Tamaño base64: {Size} caracteres", cmsFirmadoBase64.Length);
 
-                // Enviar a WSAA y obtener respuesta
-                var ticket = await SendToWSAAAsync(cmsFirmadoBase64);
+                var (ticket, credentialsXml) = await SendToWSAAAsync(cmsFirmadoBase64, config);
 
-                // Guardar en archivo
-                GuardarCredencialesEnArchivo(ticket);
+                // Guardar el XML crudo de credenciales en la DB
+                try
+                {
+                    await _configuracionRepo.SetValueAsync(TA_DB_KEY, credentialsXml);
+                    _logger.LogInformation("TA guardado en base de datos");
+                }
+                catch (Exception saveEx)
+                {
+                    _logger.LogWarning(saveEx, "No se pudo guardar TA en base de datos");
+                }
 
                 lock (_lock)
                 {
@@ -90,10 +99,10 @@ namespace BookstoreAPI.Services.Afip
             }
         }
 
-        private AfipTicketAcceso CargarCredencialesDesdeArchivo()
+        private AfipTicketAcceso ParsearTaXml(string xml)
         {
             XmlDocument taDoc = new XmlDocument();
-            taDoc.Load(TA_FILE);
+            taDoc.LoadXml(xml);
 
             string token = taDoc.SelectSingleNode("//token")?.InnerText ?? throw new Exception("Token no encontrado en TA");
             string sign = taDoc.SelectSingleNode("//sign")?.InnerText ?? throw new Exception("Sign no encontrado en TA");
@@ -109,56 +118,78 @@ namespace BookstoreAPI.Services.Afip
             };
         }
 
-        private void GuardarCredencialesEnArchivo(AfipTicketAcceso ticket)
-        {
-            try
-            {
-                var xml = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
-<loginTicketResponse>
-    <header>
-        <source>CN=wsaahomo, O=AFIP, C=AR, SERIALNUMBER=CUIT 33693450239</source>
-        <destination>SERIALNUMBER=CUIT {_config.CUIT}</destination>
-        <uniqueId>0</uniqueId>
-        <generationTime>{ticket.GenerationTime:s}</generationTime>
-        <expirationTime>{ticket.ExpirationTime:s}</expirationTime>
-    </header>
-    <credentials>
-        <token>{ticket.Token}</token>
-        <sign>{ticket.Sign}</sign>
-    </credentials>
-</loginTicketResponse>";
-
-                File.WriteAllText(TA_FILE, xml);
-                _logger.LogInformation("TA guardado en archivo {File}", TA_FILE);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "No se pudo guardar TA en archivo");
-            }
-        }
-
         public static byte[] FirmaBytesMensaje(byte[] argBytesMsg, X509Certificate2 argCertFirmante)
         {
             try
             {
-                // Poner el mensaje en un objeto ContentInfo (requerido para construir SignedCms)
                 ContentInfo infoContenido = new ContentInfo(argBytesMsg);
                 SignedCms cmsFirmado = new SignedCms(infoContenido);
-
-                // Crear objeto CmsSigner con las características del firmante
                 CmsSigner cmsFirmante = new CmsSigner(argCertFirmante);
                 cmsFirmante.IncludeOption = X509IncludeOption.EndCertOnly;
-
-                // Firmar el mensaje PKCS #7
                 cmsFirmado.ComputeSignature(cmsFirmante);
-
-                // Encodear el mensaje PKCS #7
                 return cmsFirmado.Encode();
             }
             catch (Exception excepcionAlFirmar)
             {
                 throw new Exception("Error al firmar: " + excepcionAlFirmar.Message, excepcionAlFirmar);
             }
+        }
+
+        private X509Certificate2 LoadCertificate(AfipConfig config)
+        {
+            // Prioridad 1: Certificados desde la DB (bytes)
+            if (config.CrtBytes != null && config.CrtBytes.Length > 0 &&
+                config.KeyBytes != null && config.KeyBytes.Length > 0)
+            {
+                _logger.LogInformation("Cargando certificado desde base de datos. CRT: {CrtSize} bytes, KEY: {KeySize} bytes",
+                    config.CrtBytes.Length, config.KeyBytes.Length);
+                var certPem = Encoding.UTF8.GetString(config.CrtBytes).Trim().Trim('\uFEFF');
+                var keyPem = Encoding.UTF8.GetString(config.KeyBytes).Trim().Trim('\uFEFF');
+                _logger.LogInformation("CRT empieza con: {CrtStart}", certPem.Substring(0, Math.Min(40, certPem.Length)));
+                _logger.LogInformation("KEY empieza con: {KeyStart}", keyPem.Substring(0, Math.Min(40, keyPem.Length)));
+                return LoadCertificateFromPemStrings(certPem, keyPem);
+            }
+
+            // Prioridad 2: Archivos CRT + KEY
+            if (!string.IsNullOrEmpty(config.CrtPath) && !string.IsNullOrEmpty(config.KeyPath))
+            {
+                _logger.LogInformation("Cargando certificado desde CRT + KEY archivos");
+                var certPem = File.ReadAllText(config.CrtPath);
+                var keyPem = File.ReadAllText(config.KeyPath);
+                return LoadCertificateFromPemStrings(certPem, keyPem);
+            }
+
+            // Prioridad 3: PFX
+            if (!string.IsNullOrEmpty(config.PfxPath))
+            {
+                _logger.LogInformation("Cargando certificado desde PFX");
+                return LoadCertificateFromPfx(config.PfxPath, config.PfxPassword);
+            }
+
+            throw new Exception("No se configuró ningún certificado");
+        }
+
+        private static X509Certificate2 LoadCertificateFromPemBytes(byte[] crtBytes, byte[] keyBytes)
+        {
+            var certPem = Encoding.UTF8.GetString(crtBytes).Trim().Trim('\uFEFF');
+            var keyPem = Encoding.UTF8.GetString(keyBytes).Trim().Trim('\uFEFF');
+            return LoadCertificateFromPemStrings(certPem, keyPem);
+        }
+
+        private static X509Certificate2 LoadCertificateFromPemStrings(string certPem, string keyPem)
+        {
+            certPem = certPem.Trim().Replace("\r\n", "\n");
+            keyPem = keyPem.Trim().Replace("\r\n", "\n");
+            var cert = X509Certificate2.CreateFromPem(certPem, keyPem);
+            var exported = cert.Export(X509ContentType.Pfx);
+            var finalCert = new X509Certificate2(exported, (string?)null, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet);
+
+            if (!finalCert.HasPrivateKey)
+            {
+                throw new Exception("El certificado CRT+KEY no contiene la clave privada");
+            }
+
+            return finalCert;
         }
 
         public static X509Certificate2 LoadCertificateFromPfx(string rutaPfx, string password)
@@ -181,9 +212,9 @@ namespace BookstoreAPI.Services.Afip
             return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, buenosAiresZone);
         }
 
-        private string GenerateLoginTicketRequest()
+        private string GenerateLoginTicketRequest(AfipConfig config)
         {
-            string xmlTemplate = $@"<loginTicketRequest><header><source>SERIALNUMBER=CUIT {_config.CUIT}, CN=prueba2025</source><destination>CN=wsaahomo, O=AFIP, C=AR, SERIALNUMBER=CUIT 33693450239</destination><uniqueId></uniqueId><generationTime></generationTime><expirationTime></expirationTime></header><service></service></loginTicketRequest>";
+            string xmlTemplate = $@"<loginTicketRequest><header><source>SERIALNUMBER=CUIT {config.CUIT}, CN=prueba2025</source><destination>CN=wsaahomo, O=AFIP, C=AR, SERIALNUMBER=CUIT 33693450239</destination><uniqueId></uniqueId><generationTime></generationTime><expirationTime></expirationTime></header><service></service></loginTicketRequest>";
 
             XmlDocument xmlDoc = new XmlDocument();
             xmlDoc.LoadXml(xmlTemplate);
@@ -197,7 +228,7 @@ namespace BookstoreAPI.Services.Afip
 
             var buenosAiresNow = GetBuenosAiresTime();
             xmlNodoGenerationTime.InnerText = buenosAiresNow.AddMinutes(-10).ToString("s");
-            xmlNodoExpirationTime.InnerText = buenosAiresNow.AddMinutes(+10).ToString("s");          
+            xmlNodoExpirationTime.InnerText = buenosAiresNow.AddMinutes(+10).ToString("s");
 
             xmlNodoUniqueId.InnerText = Convert.ToString(_globalUniqueID);
             xmlNodoService.InnerText = "wsfe";
@@ -207,7 +238,7 @@ namespace BookstoreAPI.Services.Afip
             return xml;
         }
 
-        private async Task<AfipTicketAcceso> SendToWSAAAsync(string signedRequestBase64)
+        private async Task<(AfipTicketAcceso ticket, string credentialsXml)> SendToWSAAAsync(string signedRequestBase64, AfipConfig config)
         {
             try
             {
@@ -222,12 +253,12 @@ namespace BookstoreAPI.Services.Afip
 </soapenv:Body>
 </soapenv:Envelope>";
 
-                _logger.LogInformation("Enviando request a WSAA: {Url}", _config.WsaaUrl);
+                _logger.LogInformation("Enviando request a WSAA: {Url}", config.WsaaUrl);
 
                 var content = new StringContent(soapRequest, Encoding.UTF8, "text/xml");
                 content.Headers.Add("SOAPAction", "");
 
-                var response = await client.PostAsync(_config.WsaaUrl, content);
+                var response = await client.PostAsync(config.WsaaUrl, content);
                 var responseXml = await response.Content.ReadAsStringAsync();
 
                 _logger.LogInformation("Respuesta de WSAA (StatusCode: {StatusCode})", response.StatusCode);
@@ -248,13 +279,12 @@ namespace BookstoreAPI.Services.Afip
             }
         }
 
-        private AfipTicketAcceso ParseWSAAResponse(string responseXml)
+        private (AfipTicketAcceso ticket, string credentialsXml) ParseWSAAResponse(string responseXml)
         {
             try
             {
                 _logger.LogInformation("Parseando respuesta WSAA");
 
-                // Extraer el TA (es un XML en string)
                 var doc = new XmlDocument();
                 doc.LoadXml(responseXml);
                 var taNode = doc.GetElementsByTagName("loginCmsReturn")[0];
@@ -268,24 +298,10 @@ namespace BookstoreAPI.Services.Afip
                 var credentialsXml = taNode.InnerText;
                 _logger.LogInformation("TA XML extraído exitosamente");
 
-                // Parsear el XML del TA
-                var credentialsDoc = new XmlDocument();
-                credentialsDoc.LoadXml(credentialsXml);
+                var ticket = ParsearTaXml(credentialsXml);
+                _logger.LogInformation("Ticket de acceso parseado exitosamente. Expira: {ExpirationTime}", ticket.ExpirationTime);
 
-                var token = credentialsDoc.SelectSingleNode("//token")?.InnerText ?? throw new Exception("Token no encontrado");
-                var sign = credentialsDoc.SelectSingleNode("//sign")?.InnerText ?? throw new Exception("Sign no encontrado");
-                var expirationTime = credentialsDoc.SelectSingleNode("//expirationTime")?.InnerText ?? throw new Exception("ExpirationTime no encontrado");
-                var generationTime = credentialsDoc.SelectSingleNode("//generationTime")?.InnerText ?? throw new Exception("GenerationTime no encontrado");
-
-                _logger.LogInformation("Ticket de acceso parseado exitosamente. Expira: {ExpirationTime}", expirationTime);
-
-                return new AfipTicketAcceso
-                {
-                    Token = token,
-                    Sign = sign,
-                    ExpirationTime = DateTime.Parse(expirationTime, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
-                    GenerationTime = DateTime.Parse(generationTime, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind)
-                };
+                return (ticket, credentialsXml);
             }
             catch (Exception ex)
             {

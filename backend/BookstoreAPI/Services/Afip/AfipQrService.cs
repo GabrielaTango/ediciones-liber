@@ -1,6 +1,5 @@
 using BookstoreAPI.Models;
 using BookstoreAPI.Models.Afip;
-using Microsoft.Extensions.Options;
 using QRCoder;
 using System.Text;
 using System.Text.Json;
@@ -9,29 +8,40 @@ namespace BookstoreAPI.Services.Afip
 {
     public class AfipQrService : IAfipQrService
     {
-        private readonly AfipConfig _config;
+        private readonly IAfipConfigProvider _configProvider;
         private readonly ILogger<AfipQrService> _logger;
 
         public AfipQrService(
-            IOptions<AfipConfig> config,
+            IAfipConfigProvider configProvider,
             ILogger<AfipQrService> logger)
         {
-            _config = config.Value;
+            _configProvider = configProvider;
             _logger = logger;
+        }
+
+        public async Task<string> GenerarQrBase64Async(Comprobante comprobante, Cliente cliente)
+        {
+            var qrBytes = await GenerarQrBytesAsync(comprobante, cliente);
+            return Convert.ToBase64String(qrBytes);
         }
 
         public string GenerarQrBase64(Comprobante comprobante, Cliente cliente)
         {
-            var qrBytes = GenerarQrBytes(comprobante, cliente);
-            return Convert.ToBase64String(qrBytes);
+            return GenerarQrBase64Async(comprobante, cliente).GetAwaiter().GetResult();
         }
 
         public byte[] GenerarQrBytes(Comprobante comprobante, Cliente cliente)
         {
+            return GenerarQrBytesAsync(comprobante, cliente).GetAwaiter().GetResult();
+        }
+
+        public async Task<byte[]> GenerarQrBytesAsync(Comprobante comprobante, Cliente cliente)
+        {
             try
             {
+                var _config = await _configProvider.GetConfigAsync();
                 // Construir URL del QR según especificaciones de AFIP
-                var qrUrl = GenerarUrlQr(comprobante, cliente);
+                var qrUrl = GenerarUrlQr(comprobante, cliente, _config);
 
                 // Generar QR code
                 using var qrGenerator = new QRCodeGenerator();
@@ -47,7 +57,7 @@ namespace BookstoreAPI.Services.Afip
             }
         }
 
-        private string GenerarUrlQr(Comprobante comprobante, Cliente cliente)
+        private string GenerarUrlQr(Comprobante comprobante, Cliente cliente, AfipConfig _config)
         {
             try
             {

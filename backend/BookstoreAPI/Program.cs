@@ -1,5 +1,4 @@
 using BookstoreAPI.Data;
-using BookstoreAPI.Models.Afip;
 using BookstoreAPI.Repositories;
 using BookstoreAPI.Services;
 using BookstoreAPI.Services.Afip;
@@ -25,9 +24,6 @@ builder.Services.AddCors(options =>
         });
 });
 
-// Configurar AFIP
-builder.Services.Configure<AfipConfig>(builder.Configuration.GetSection("AfipConfig"));
-
 // Registrar DapperContext como Singleton
 builder.Services.AddSingleton<DapperContext>();
 
@@ -44,6 +40,7 @@ builder.Services.AddScoped<IRemitoRepository, RemitoRepository>();
 builder.Services.AddScoped<IProveedorRepository, ProveedorRepository>();
 builder.Services.AddScoped<IComprobanteProveedorRepository, ComprobanteProveedorRepository>();
 builder.Services.AddScoped<ICuotaProveedorRepository, CuotaProveedorRepository>();
+builder.Services.AddScoped<IConfiguracionRepository, ConfiguracionRepository>();
 
 // Registrar Services
 builder.Services.AddScoped<IClienteService, ClienteService>();
@@ -57,6 +54,7 @@ builder.Services.AddScoped<IProveedorService, ProveedorService>();
 builder.Services.AddScoped<IComprobanteProveedorService, ComprobanteProveedorService>();
 
 // Registrar Services AFIP
+builder.Services.AddScoped<IAfipConfigProvider, AfipConfigProvider>();
 builder.Services.AddScoped<IAfipAuthService, AfipAuthService>();
 builder.Services.AddScoped<IAfipFacturacionService, AfipFacturacionService>();
 builder.Services.AddScoped<IAfipQrService, AfipQrService>();

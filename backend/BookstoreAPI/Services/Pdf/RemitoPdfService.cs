@@ -8,6 +8,8 @@ namespace BookstoreAPI.Services.Pdf
     public class RemitoPdfService : IRemitoPdfService
     {
         private readonly ILogger<RemitoPdfService> _logger;
+        private static readonly byte[] _logoBytes = File.ReadAllBytes(
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Images", "LiberLogo.png"));
 
         public RemitoPdfService(ILogger<RemitoPdfService> logger)
         {
@@ -21,14 +23,17 @@ namespace BookstoreAPI.Services.Pdf
             {
                 var document = Document.Create(container =>
                 {
-                    container.Page(page =>
+                    for (int copia = 1; copia <= 3; copia++)
                     {
-                        page.Size(PageSizes.A4);
-                        page.Margin(25);
-                        page.DefaultTextStyle(x => x.FontSize(10));
+                        container.Page(page =>
+                        {
+                            page.Size(PageSizes.A4);
+                            page.Margin(25);
+                            page.DefaultTextStyle(x => x.FontSize(10));
 
-                        page.Content().Element(c => ComposeRemito(c, remito));
-                    });
+                            page.Content().Element(c => ComposeRemito(c, remito));
+                        });
+                    }
                 });
 
                 return document.GeneratePdf();
@@ -50,8 +55,7 @@ namespace BookstoreAPI.Services.Pdf
                     // Columna izquierda - Datos de la empresa
                     row.RelativeItem(6).Column(leftCol =>
                     {
-                        leftCol.Item().Text("E D I C I O N E S").FontSize(10).LetterSpacing(0.1f);
-                        leftCol.Item().Text("LIBER").Bold().FontSize(32);
+                        leftCol.Item().Width(180).Image(_logoBytes);
                         leftCol.Item().PaddingTop(3).Text("de Roberto José Passarelli y Marcos E. Passarelli S.H.").FontSize(8);
                         leftCol.Item().PaddingTop(5).Text("Av. Asamblea 1442 P. 7 Dto. 20 - C.P.: C1406HVR - CABA").FontSize(8);
                         leftCol.Item().Text("Cel: 011 55012902 Marcos").FontSize(8);
@@ -237,9 +241,9 @@ namespace BookstoreAPI.Services.Pdf
 
                     // ===== ETIQUETAS =====
                     var etiquetasPorPagina = 3;
-                    var totalPaginasEtiquetas = (int)Math.Ceiling((double)remito.CantidadBultos / etiquetasPorPagina);
+                    var totalPaginas = (int)Math.Ceiling((double)remito.CantidadBultos / etiquetasPorPagina);
 
-                    for (int pagina = 0; pagina < totalPaginasEtiquetas; pagina++)
+                    for (int pagina = 0; pagina < totalPaginas; pagina++)
                     {
                         container.Page(page =>
                         {
@@ -268,7 +272,7 @@ namespace BookstoreAPI.Services.Pdf
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al generar PDF completo de remito con etiquetas");
+                _logger.LogError(ex, "Error al generar PDF completo de remito");
                 throw;
             }
         }
@@ -284,8 +288,7 @@ namespace BookstoreAPI.Services.Pdf
                     headerRow.RelativeItem(6).Column(envioCol =>
                     {
                         envioCol.Item().Text("Envío de:").Bold().FontSize(10);
-                        envioCol.Item().PaddingTop(3).Text("E D I C I O N E S").FontSize(8);
-                        envioCol.Item().Text("LIBER").Bold().FontSize(20);
+                        envioCol.Item().PaddingTop(3).Width(120).Image(_logoBytes);
                         envioCol.Item().Text("de Roberto José Passarelli y Marcos E. Passarelli S.H.").FontSize(7);
                         envioCol.Item().Text("Av. Asamblea 1442 P. 7 Dto. 20 - C.P.: C1406HVR - CABA").FontSize(7);
                         envioCol.Item().Text("I.V.A. EXENTO").FontSize(7);

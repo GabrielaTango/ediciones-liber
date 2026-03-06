@@ -19,11 +19,11 @@ namespace BookstoreAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetCuotas([FromQuery] int? zonaId, [FromQuery] DateTime? fechaCorte)
+        public async Task<IActionResult> GetCuotas([FromQuery] int? zonaId, [FromQuery] DateTime? fechaCorte, [FromQuery] int? vendedorId, [FromQuery] string? comprobante, [FromQuery] int? clienteId)
         {
             try
             {
-                var cuotas = await _cuotaRepository.GetCuotasByFiltrosAsync(zonaId, fechaCorte);
+                var cuotas = await _cuotaRepository.GetCuotasByFiltrosAsync(zonaId, fechaCorte, vendedorId, comprobante, clienteId);
                 return Ok(cuotas);
             }
             catch (Exception ex)

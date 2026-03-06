@@ -2,7 +2,6 @@ using Afip.WsfeV1;
 using BookstoreAPI.Models;
 using BookstoreAPI.Models.Afip;
 using BookstoreAPI.Repositories;
-using Microsoft.Extensions.Options;
 using System.Globalization;
 using System.Text;
 using System.Xml;
@@ -11,18 +10,18 @@ namespace BookstoreAPI.Services.Afip
 {
     public class AfipFacturacionService : IAfipFacturacionService
     {
-        private readonly AfipConfig _config;
+        private readonly IAfipConfigProvider _configProvider;
         private readonly IAfipAuthService _authService;
         private readonly IClienteRepository _clienteRepository;
         private readonly ILogger<AfipFacturacionService> _logger;
 
         public AfipFacturacionService(
-            IOptions<AfipConfig> config,
+            IAfipConfigProvider configProvider,
             IAfipAuthService authService,
             IClienteRepository clienteRepository,
             ILogger<AfipFacturacionService> logger)
         {
-            _config = config.Value;
+            _configProvider = configProvider;
             _authService = authService;
             _clienteRepository = clienteRepository;
             _logger = logger;
@@ -44,6 +43,7 @@ namespace BookstoreAPI.Services.Afip
         {
             try
             {
+                var _config = await _configProvider.GetConfigAsync();
                 _logger.LogInformation("Iniciando solicitud de CAE para comprobante tipo {TipoComprobante}", tipoComprobanteAfip);
 
                 // Obtener ticket de acceso
@@ -184,7 +184,7 @@ namespace BookstoreAPI.Services.Afip
                 _logger.LogDebug("Respuesta WSFEv1: {Response}", responseXml);
 
                 // Procesar respuesta
-                var result = ParsearRespuestaCAE(responseXml, numeroComprobante);
+                var result = ParsearRespuestaCAE(responseXml, numeroComprobante, _config.PuntoVenta);
 
                 if (result.Success)
                 {
@@ -208,7 +208,7 @@ namespace BookstoreAPI.Services.Afip
             }
         }
 
-        private AfipCAEResponse ParsearRespuestaCAE(string responseXml, int numeroComprobante)
+        private AfipCAEResponse ParsearRespuestaCAE(string responseXml, int numeroComprobante, int puntoVenta)
         {
             var xmlDoc = new XmlDocument();
             xmlDoc.LoadXml(responseXml);
@@ -219,7 +219,7 @@ namespace BookstoreAPI.Services.Afip
 
             var result = new AfipCAEResponse
             {
-                NumeroComprobante = $"{_config.PuntoVenta:D5}-{numeroComprobante:D8}"
+                NumeroComprobante = $"{puntoVenta:D5}-{numeroComprobante:D8}"
             };
 
             // Verificar errores
@@ -284,6 +284,7 @@ namespace BookstoreAPI.Services.Afip
         {
             try
             {
+                var _config = await _configProvider.GetConfigAsync();
                 var ticket = await _authService.GetTicketAccesoAsync();
 
                 var soapRequest = $@"<?xml version=""1.0"" encoding=""UTF-8""?>

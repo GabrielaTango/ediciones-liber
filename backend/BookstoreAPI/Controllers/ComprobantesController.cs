@@ -46,15 +46,16 @@ namespace BookstoreAPI.Controllers
             [FromQuery] string? tipoComprobante,
             [FromQuery] DateTime? fechaDesde,
             [FromQuery] DateTime? fechaHasta,
-            [FromQuery] int? vendedorId)
+            [FromQuery] int? vendedorId,
+            [FromQuery] string? comprobante)
         {
             try
             {
                 // Si hay algún filtro, usar el método filtrado
-                if (zonaId.HasValue || clienteId.HasValue || !string.IsNullOrWhiteSpace(tipoComprobante) || fechaDesde.HasValue || fechaHasta.HasValue || vendedorId.HasValue)
+                if (zonaId.HasValue || clienteId.HasValue || !string.IsNullOrWhiteSpace(tipoComprobante) || fechaDesde.HasValue || fechaHasta.HasValue || vendedorId.HasValue || !string.IsNullOrWhiteSpace(comprobante))
                 {
                     var comprobantesFiltrados = await _comprobanteRepository.GetAllFilteredAsync(
-                        zonaId, clienteId, tipoComprobante, fechaDesde, fechaHasta, vendedorId);
+                        zonaId, clienteId, tipoComprobante, fechaDesde, fechaHasta, vendedorId, comprobante);
                     return Ok(comprobantesFiltrados);
                 }
 
@@ -315,7 +316,7 @@ namespace BookstoreAPI.Controllers
         }
 
         [HttpGet("deudores")]
-        public async Task<IActionResult> GetDeudores([FromQuery] int mes, [FromQuery] int anio, [FromQuery] int? zonaId)
+        public async Task<IActionResult> GetDeudores([FromQuery] int mes, [FromQuery] int anio, [FromQuery] int? zonaId, [FromQuery] int? vendedorId)
         {
             try
             {
@@ -327,7 +328,7 @@ namespace BookstoreAPI.Controllers
                     return BadRequest(new { message = "El año debe estar entre 2000 y 2100" });
 
                 // Obtener datos de deudores
-                var deudores = await _comprobanteRepository.GetDeudoresAsync(mes, anio, zonaId);
+                var deudores = await _comprobanteRepository.GetDeudoresAsync(mes, anio, zonaId, vendedorId);
                 return Ok(deudores);
             }
             catch (Exception ex)

@@ -66,7 +66,7 @@ namespace BookstoreAPI.Repositories
         }
 
         public async Task<IEnumerable<ComprobanteConDetallesDto>> GetAllFilteredAsync(
-            int? zonaId, int? clienteId, string? tipoComprobante, DateTime? fechaDesde, DateTime? fechaHasta, int? vendedorId = null)
+            int? zonaId, int? clienteId, string? tipoComprobante, DateTime? fechaDesde, DateTime? fechaHasta, int? vendedorId = null, string? numeroComprobante = null)
         {
             var query = @"
                 SELECT
@@ -139,6 +139,12 @@ namespace BookstoreAPI.Repositories
             {
                 query += " AND c.vendedor_id = @VendedorId";
                 parameters.Add("VendedorId", vendedorId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(numeroComprobante))
+            {
+                query += " AND c.numeroComprobante LIKE @NumeroComprobante";
+                parameters.Add("NumeroComprobante", $"%{numeroComprobante}%");
             }
 
             query += " ORDER BY c.fecha DESC, c.id DESC";
@@ -501,7 +507,7 @@ namespace BookstoreAPI.Repositories
             return ventas;
         }
 
-        public async Task<DeudoresReporteDto> GetDeudoresAsync(int mes, int anio, int? zonaId = null)
+        public async Task<DeudoresReporteDto> GetDeudoresAsync(int mes, int anio, int? zonaId = null, int? vendedorId = null)
         {
             // Query para obtener comprobantes del mes/año especificado
             // Excluye comprobantes cancelados (que tienen una NC asociada) y las propias NC
@@ -530,6 +536,11 @@ namespace BookstoreAPI.Repositories
             if (zonaId.HasValue)
             {
                 comprobantesQuery += " AND z.id = @ZonaId";
+            }
+
+            if (vendedorId.HasValue)
+            {
+                comprobantesQuery += " AND v.id = @VendedorId";
             }
 
             comprobantesQuery += " ORDER BY c.fecha, c.numeroComprobante";
@@ -562,6 +573,11 @@ namespace BookstoreAPI.Repositories
                 cuotasQuery += " AND z.id = @ZonaId";
             }
 
+            if (vendedorId.HasValue)
+            {
+                cuotasQuery += " AND c.vendedor_id = @VendedorId";
+            }
+
             cuotasQuery += " ORDER BY cu.Comprobante_Id, cu.numero_cuota";
 
             // Query para obtener pagos agrupados por comprobante y mes de pago
@@ -588,11 +604,17 @@ namespace BookstoreAPI.Repositories
                 pagosQuery += " AND z.id = @ZonaId";
             }
 
+            if (vendedorId.HasValue)
+            {
+                pagosQuery += " AND c.vendedor_id = @VendedorId";
+            }
+
             using var connection = _context.CreateConnection();
 
-            var comprobantesData = await connection.QueryAsync<dynamic>(comprobantesQuery, new { Mes = mes, Anio = anio, ZonaId = zonaId });
-            var cuotasData = await connection.QueryAsync<dynamic>(cuotasQuery, new { Mes = mes, Anio = anio, ZonaId = zonaId });
-            var pagosData = await connection.QueryAsync<dynamic>(pagosQuery, new { Mes = mes, Anio = anio, ZonaId = zonaId });
+            var queryParams = new { Mes = mes, Anio = anio, ZonaId = zonaId, VendedorId = vendedorId };
+            var comprobantesData = await connection.QueryAsync<dynamic>(comprobantesQuery, queryParams);
+            var cuotasData = await connection.QueryAsync<dynamic>(cuotasQuery, queryParams);
+            var pagosData = await connection.QueryAsync<dynamic>(pagosQuery, queryParams);
 
             var resultado = new DeudoresReporteDto
             {

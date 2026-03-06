@@ -1,8 +1,6 @@
 using BookstoreAPI.Models;
 using BookstoreAPI.Models.Afip;
 using BookstoreAPI.Services.Afip;
-using Microsoft.Extensions.Options;
-using MySqlX.XDevAPI;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -11,18 +9,19 @@ namespace BookstoreAPI.Services.Pdf
 {
     public class ComprobantePdfService : IComprobantePdfService
     {
-        private readonly AfipConfig _config;
+        private readonly IAfipConfigProvider _configProvider;
         private readonly IAfipQrService _qrService;
         private readonly ILogger<ComprobantePdfService> _logger;
         private int sizeImporte = 8;
         private int sizeCuotas = 12;
+        private string _cuit = string.Empty;
 
         public ComprobantePdfService(
-            IOptions<AfipConfig> config,
+            IAfipConfigProvider configProvider,
             IAfipQrService qrService,
             ILogger<ComprobantePdfService> logger)
         {
-            _config = config.Value;
+            _configProvider = configProvider;
             _qrService = qrService;
             _logger = logger;
 
@@ -34,6 +33,8 @@ namespace BookstoreAPI.Services.Pdf
         {
             try
             {
+                var afipConfig = _configProvider.GetConfigAsync().GetAwaiter().GetResult();
+                _cuit = afipConfig.CUIT;
                 var document = Document.Create(container =>
                 {
                     // Comprobante por triplicado (3 páginas)
@@ -72,26 +73,39 @@ namespace BookstoreAPI.Services.Pdf
             {
                 col.Item().Row(row =>
                 {
-                    row.RelativeItem().Column(column =>
+                    // Columna izquierda - Logo y datos empresa
+                    row.RelativeItem(5).Column(column =>
                     {
-                        // Tipo de comprobante con letra
-                        column.Item().Row(r =>
+                        column.Item().AlignCenter().PaddingBottom(12).Width(100).Image("./Images/LiberLogo.png");
+                        column.Item().PaddingTop(3).Text("de Roberto José Passarelli y Marcos E. Passarelli S.H.").FontSize(8);
+                        column.Item().PaddingTop(5).Text("Av. Asamblea 1442 P. 7 Dto. 20 - C.P.: C1406HVR - CABA").FontSize(8);
+                        column.Item().Text("Cel: 011 55012902 Marcos").FontSize(8);
+                        column.Item().Text("Cel: 01135772183 Roberto").FontSize(8);
+                        column.Item().PaddingTop(3).Text("IVA EXENTO").FontSize(8);
+                    });
+
+                    // Columna central - Letra del comprobante y tipo
+                    row.RelativeItem(2).AlignTop().Column(column =>
+                    {
+                        column.Item().AlignCenter().Border(1).Background(Colors.Grey.Lighten3).Padding(10)
+                            .Text(letraComprobante).FontSize(20).Bold().AlignCenter();
+                        column.Item().PaddingTop(3).AlignCenter().Text(tipoTexto).FontSize(9).Bold();
+                    });
+
+                    // Columna derecha - Datos del comprobante
+                    row.RelativeItem(5).AlignTop().PaddingHorizontal(10).Column(column =>
+                    {
+                        column.Item().Text("DATOS DEL COMPROBANTE").FontSize(12).Bold();
+                        column.Item().PaddingTop(5).Text($"Número: {comprobante.NumeroComprobante}");
+                        column.Item().Text($"Fecha: {comprobante.Fecha:dd/MM/yyyy}");
+
+                        if (!string.IsNullOrEmpty(comprobante.CAE))
                         {
-                            r.RelativeItem().Column(c =>
-                            {
-                                c.Item().AlignCenter().PaddingVertical(10).Border(1).Background(Colors.Grey.Lighten3)
-                                    .Text(letraComprobante).FontSize(16).Bold();
-                            });
-                        });
-                        column.Item().Width(100).Image("./Images/LiberLogo.png");
-                        column.Item().Text($"CUIT: {_config.CUIT}").FontSize(10);
-                        column.Item().Text("Dirección: Calle Falsa 123").FontSize(9);
-                        column.Item().Text("Tel: (011) 1234-5678").FontSize(9);
+                            column.Item().Text($"CAE: {comprobante.CAE}");
+                            column.Item().Text($"Vto. CAE: {comprobante.VTO:dd/MM/yyyy}");
+                        }
                     });
                 });
-
-                // Tipo de comprobante (FACTURA / NOTA DE CRÉDITO / PRESUPUESTO)
-                col.Item().PaddingTop(10).AlignCenter().Text(tipoTexto).FontSize(14).Bold();
 
                 // Leyenda para presupuestos
                 if (esPresupuesto)
@@ -109,33 +123,15 @@ namespace BookstoreAPI.Services.Pdf
             {
                 column.Item().PaddingVertical(10);
 
-                // Información del comprobante y cliente
-                column.Item().Row(row =>
+                // Datos del cliente
+                column.Item().Column(col =>
                 {
-                    // Datos del comprobante
-                    row.RelativeItem().Column(col =>
-                    {
-                        col.Item().Text("DATOS DEL COMPROBANTE").FontSize(12).Bold();
-                        col.Item().PaddingTop(5).Text($"Número: {comprobante.NumeroComprobante}");
-                        col.Item().Text($"Fecha: {comprobante.Fecha:dd/MM/yyyy}");
-
-                        if (!string.IsNullOrEmpty(comprobante.CAE))
-                        {
-                            col.Item().Text($"CAE: {comprobante.CAE}");
-                            col.Item().Text($"Vto. CAE: {comprobante.VTO:dd/MM/yyyy}");
-                        }
-                    });
-
-                    // Datos del cliente
-                    row.RelativeItem().Column(col =>
-                    {
-                        col.Item().Text("DATOS DEL CLIENTE").FontSize(12).Bold();
-                        col.Item().PaddingTop(5).Text($"Nombre: {cliente.Nombre}");
-                        col.Item().Text($"Documento: {cliente.NroDocumento ?? "-"}");
-                        col.Item().Text($"Dirección: {cliente.DomicilioComercial ?? cliente.DomicilioParticular ?? "-"}");
-                        col.Item().Text($"Teléfono: {cliente.Telefono ?? cliente.TelefonoMovil ?? "-"}");
-                        col.Item().Text($"Email: {cliente.EMail ?? "-"}");
-                    });
+                    col.Item().Text("DATOS DEL CLIENTE").FontSize(12).Bold();
+                    col.Item().PaddingTop(5).Text($"Nombre: {cliente.Nombre}");
+                    col.Item().Text($"Documento: {cliente.NroDocumento ?? "-"}");
+                    col.Item().Text($"Dirección: {cliente.DomicilioComercial ?? cliente.DomicilioParticular ?? "-"}");
+                    col.Item().Text($"Teléfono: {cliente.Telefono ?? cliente.TelefonoMovil ?? "-"}");
+                    col.Item().Text($"Email: {cliente.EMail ?? "-"}");
                 });
 
                 column.Item().PaddingVertical(15);

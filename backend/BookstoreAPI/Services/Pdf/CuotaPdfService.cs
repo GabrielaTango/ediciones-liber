@@ -1,6 +1,4 @@
 using BookstoreAPI.Models;
-using BookstoreAPI.Models.Afip;
-using Microsoft.Extensions.Options;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -9,14 +7,11 @@ namespace BookstoreAPI.Services.Pdf
 {
     public class CuotaPdfService : ICuotaPdfService
     {
-        private readonly AfipConfig _config;
         private readonly ILogger<CuotaPdfService> _logger;
 
         public CuotaPdfService(
-            IOptions<AfipConfig> config,
             ILogger<CuotaPdfService> logger)
         {
-            _config = config.Value;
             _logger = logger;
 
             QuestPDF.Settings.License = LicenseType.Community;
