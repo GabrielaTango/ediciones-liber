@@ -8,6 +8,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { Icon } from './Icon';
+import shopImg from '../assets/shop.png';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -44,7 +45,7 @@ const Sidebar = ({ collapsed, onToggleCollapse }: SidebarProps) => {
         {/* Brand */}
         <div className="sidebar-brand">
           {collapsed
-            ? <img src="/src/assets/shop.png" alt="EL" style={{ width: 32, height: 32 }} />
+            ? <img src={shopImg} alt="EL" style={{ width: 32, height: 32 }} />
             : <h4><span>Ediciones</span><span> Liber</span></h4>
           }
         </div>
