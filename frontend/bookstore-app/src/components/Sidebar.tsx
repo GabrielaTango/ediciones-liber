@@ -43,14 +43,10 @@ const Sidebar = ({ collapsed, onToggleCollapse }: SidebarProps) => {
       <aside className={`sidebar ${isMobileOpen ? 'show' : ''} ${collapsed ? 'collapsed' : ''}`}>
         {/* Brand */}
         <div className="sidebar-brand">
-          <h4>
-            { /*<div className="brand-icon">
-              <Icon name="fa-solid fa-receipt" />
-            </div> */
-            }
-            <span>Ediciones</span>
-            <span> Liber</span>
-          </h4>
+          {collapsed
+            ? <img src="/src/assets/shop.png" alt="EL" style={{ width: 32, height: 32 }} />
+            : <h4><span>Ediciones</span><span> Liber</span></h4>
+          }
         </div>
 
         {/* Collapse Toggle (desktop only) */}
