@@ -27,5 +27,9 @@ namespace BookstoreAPI.Models
         public decimal Descuento { get; set; }
         public string? Observaciones { get; set; }
         public string? TipoDocArca { get; set; }
+
+        // Campos de navegación (JOIN)
+        public string? ProvinciaDescripcion { get; set; }
+        public string? Localidad { get; set; }
     }
 }

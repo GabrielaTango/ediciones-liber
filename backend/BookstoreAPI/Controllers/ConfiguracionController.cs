@@ -1,7 +1,10 @@
 using BookstoreAPI.DTOs;
 using BookstoreAPI.Repositories;
 using BookstoreAPI.Services.Afip;
+using Dapper;
 using Microsoft.AspNetCore.Mvc;
+using MySql.Data.MySqlClient;
+using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
@@ -14,15 +17,18 @@ namespace BookstoreAPI.Controllers
         private readonly IConfiguracionRepository _repo;
         private readonly IAfipFacturacionService _afipFacturacion;
         private readonly ILogger<ConfiguracionController> _logger;
+        private readonly IConfiguration _configuration;
 
         public ConfiguracionController(
             IConfiguracionRepository repo,
             IAfipFacturacionService afipFacturacion,
-            ILogger<ConfiguracionController> logger)
+            ILogger<ConfiguracionController> logger,
+            IConfiguration configuration)
         {
             _repo = repo;
             _afipFacturacion = afipFacturacion;
             _logger = logger;
+            _configuration = configuration;
         }
 
         [HttpGet("afip")]
@@ -151,6 +157,210 @@ namespace BookstoreAPI.Controllers
             {
                 _logger.LogError(ex, "Error al consultar último comprobante");
                 return StatusCode(500, new { message = "Error al consultar", error = ex.Message });
+            }
+        }
+
+        // ===== BACKUP / RESTORE =====
+
+        [HttpGet("backup-path")]
+        public async Task<IActionResult> GetBackupPath()
+        {
+            var ruta = await _repo.GetValueAsync("Backup_RutaCarpeta");
+            return Ok(new { ruta = ruta ?? "" });
+        }
+
+        [HttpPut("backup-path")]
+        public async Task<IActionResult> SetBackupPath([FromBody] BackupPathDto dto)
+        {
+            await _repo.SetValueAsync("Backup_RutaCarpeta", dto.Ruta);
+            return Ok(new { message = "Ruta guardada correctamente" });
+        }
+
+        [HttpGet("backup/archivos")]
+        public async Task<IActionResult> ListarArchivosBackup()
+        {
+            var ruta = await _repo.GetValueAsync("Backup_RutaCarpeta");
+            if (string.IsNullOrEmpty(ruta) || !Directory.Exists(ruta))
+                return Ok(Array.Empty<string>());
+
+            var archivos = Directory.GetFiles(ruta, "*.sql")
+                .Select(Path.GetFileName)
+                .OrderByDescending(f => f)
+                .ToArray();
+
+            return Ok(archivos);
+        }
+
+        [HttpPost("backup")]
+        public async Task<IActionResult> RealizarBackup()
+        {
+            try
+            {
+                var ruta = await _repo.GetValueAsync("Backup_RutaCarpeta");
+                if (string.IsNullOrEmpty(ruta))
+                    return BadRequest(new { message = "No se configuró la ruta de backup" });
+
+                if (!Directory.Exists(ruta))
+                    Directory.CreateDirectory(ruta);
+
+                var connStr = _configuration.GetConnectionString("DefaultConnection")!;
+                var builder = new MySqlConnectionStringBuilder(connStr);
+
+                var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                var fileName = $"backup_{builder.Database}_{timestamp}.sql";
+                var filePath = Path.Combine(ruta, fileName);
+
+                var args = $"--host={builder.Server} --user={builder.UserID} --password={builder.Password} --port={builder.Port} --single-transaction --routines --triggers {builder.Database}";
+
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "mysqldump",
+                        Arguments = args,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.Start();
+                var output = await process.StandardOutput.ReadToEndAsync();
+                var error = await process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                if (process.ExitCode != 0)
+                {
+                    _logger.LogError("mysqldump error: {Error}", error);
+                    return StatusCode(500, new { message = "Error al realizar backup", error });
+                }
+
+                await System.IO.File.WriteAllTextAsync(filePath, output, Encoding.UTF8);
+
+                return Ok(new { message = "Backup realizado correctamente", archivo = fileName });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al realizar backup");
+                return StatusCode(500, new { message = "Error al realizar backup", error = ex.Message });
+            }
+        }
+
+        [HttpPost("restore")]
+        public async Task<IActionResult> RestaurarBackup([FromBody] RestoreDto dto)
+        {
+            try
+            {
+                var ruta = await _repo.GetValueAsync("Backup_RutaCarpeta");
+                if (string.IsNullOrEmpty(ruta))
+                    return BadRequest(new { message = "No se configuró la ruta de backup" });
+
+                var filePath = Path.Combine(ruta, dto.Archivo);
+                if (!System.IO.File.Exists(filePath))
+                    return BadRequest(new { message = "El archivo de backup no existe" });
+
+                var connStr = _configuration.GetConnectionString("DefaultConnection")!;
+                var builder = new MySqlConnectionStringBuilder(connStr);
+
+                var args = $"--host={builder.Server} --user={builder.UserID} --password={builder.Password} --port={builder.Port} {builder.Database}";
+
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "mysql",
+                        Arguments = args,
+                        RedirectStandardInput = true,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.Start();
+                var sqlContent = await System.IO.File.ReadAllTextAsync(filePath, Encoding.UTF8);
+                await process.StandardInput.WriteAsync(sqlContent);
+                process.StandardInput.Close();
+
+                var error = await process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                if (process.ExitCode != 0)
+                {
+                    _logger.LogError("mysql restore error: {Error}", error);
+                    return StatusCode(500, new { message = "Error al restaurar backup", error });
+                }
+
+                return Ok(new { message = "Backup restaurado correctamente" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al restaurar backup");
+                return StatusCode(500, new { message = "Error al restaurar backup", error = ex.Message });
+            }
+        }
+        [HttpPost("vaciar-datos")]
+        public async Task<IActionResult> VaciarDatos()
+        {
+            try
+            {
+                using var connection = new MySqlConnection(_configuration.GetConnectionString("DefaultConnection"));
+                await connection.OpenAsync();
+
+                var tablasOrdenadas = new[]
+                {
+                    "pagos_cuotas_proveedores",
+                    "pagos_cuotas",
+                    "cuotas_proveedores",
+                    "comprobantes_proveedores",
+                    "cuotas",
+                    "comprobante_detalle",
+                    "comprobantes",
+                    "remitos",
+                    "precios",
+                    "articulos",
+                    "clientes",
+                    "vendedores",
+                    "subzonas",
+                    "transportes",
+                    "zonas",
+                    "provincias",
+                    "tipodocumento",
+                    "condicionVenta",
+                    "listas",
+                    "categorias_gasto",
+                    "gastos",
+                    "customers"
+                };
+
+                using var transaction = await connection.BeginTransactionAsync();
+                try
+                {
+                    await connection.ExecuteAsync("SET FOREIGN_KEY_CHECKS = 0", transaction: transaction);
+
+                    foreach (var tabla in tablasOrdenadas)
+                    {
+                        await connection.ExecuteAsync($"TRUNCATE TABLE `{tabla}`", transaction: transaction);
+                    }
+
+                    await connection.ExecuteAsync("SET FOREIGN_KEY_CHECKS = 1", transaction: transaction);
+
+                    await transaction.CommitAsync();
+
+                    return Ok(new { message = "Base de datos vaciada correctamente. La configuración se mantuvo." });
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al vaciar la base de datos");
+                return StatusCode(500, new { message = "Error al vaciar la base de datos", error = ex.Message });
             }
         }
     }

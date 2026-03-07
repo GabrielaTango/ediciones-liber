@@ -29,4 +29,14 @@ namespace BookstoreAPI.DTOs
         public string TipoComprobanteDescripcion { get; set; } = string.Empty;
         public int UltimoNumero { get; set; }
     }
+
+    public class BackupPathDto
+    {
+        public string Ruta { get; set; } = string.Empty;
+    }
+
+    public class RestoreDto
+    {
+        public string Archivo { get; set; } = string.Empty;
+    }
 }

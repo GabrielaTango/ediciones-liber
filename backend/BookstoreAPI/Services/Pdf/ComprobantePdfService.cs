@@ -129,7 +129,7 @@ namespace BookstoreAPI.Services.Pdf
                     col.Item().Text("DATOS DEL CLIENTE").FontSize(12).Bold();
                     col.Item().PaddingTop(5).Text($"Nombre: {cliente.Nombre}");
                     col.Item().Text($"Documento: {cliente.NroDocumento ?? "-"}");
-                    col.Item().Text($"Dirección: {cliente.DomicilioComercial ?? cliente.DomicilioParticular ?? "-"}");
+                    col.Item().Text($"Dirección: {FormatDireccionCompleta(cliente)}");
                     col.Item().Text($"Teléfono: {cliente.Telefono ?? cliente.TelefonoMovil ?? "-"}");
                     col.Item().Text($"Email: {cliente.EMail ?? "-"}");
                 });
@@ -290,6 +290,23 @@ namespace BookstoreAPI.Services.Pdf
                 "PRE" => "PRESUPUESTO",
                 _ => "COMPROBANTE"
             };
+        }
+
+        private string FormatDireccionCompleta(Cliente cliente)
+        {
+            var partes = new List<string>();
+
+            var domicilio = cliente.DomicilioComercial ?? cliente.DomicilioParticular;
+            if (!string.IsNullOrEmpty(domicilio))
+                partes.Add(domicilio);
+            if (!string.IsNullOrEmpty(cliente.CodigoPostal))
+                partes.Add(cliente.CodigoPostal);
+            if (!string.IsNullOrEmpty(cliente.Localidad))
+                partes.Add(cliente.Localidad);
+            if (!string.IsNullOrEmpty(cliente.ProvinciaDescripcion))
+                partes.Add(cliente.ProvinciaDescripcion);
+
+            return partes.Count > 0 ? string.Join(" - ", partes) : "-";
         }
 
         private string ObtenerLetraComprobante(string? tipoComprobante)

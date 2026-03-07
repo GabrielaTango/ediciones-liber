@@ -31,13 +31,17 @@ namespace BookstoreAPI.Repositories
         public async Task<Cliente?> GetByIdAsync(int id)
         {
             const string query = @"
-                SELECT Id, Codigo, Nombre, Zona_Id, SubZona_Id, Vendedor_Id,
-                       DomicilioComercial, DomicilioParticular, Provincia_Id, CodigoPostal,
-                       FechaAlta, FechaInha, SoloContado, Telefono, TelefonoMovil, EMail,
-                       Contacto, TipoDocumento, NroDocumento, NroIIBB, CategoriaIva,
-                       CondicionPago, Descuento, Observaciones, TipoDocArca
-                FROM clientes
-                WHERE Id = @Id";
+                SELECT c.Id, c.Codigo, c.Nombre, c.Zona_Id, c.SubZona_Id, c.Vendedor_Id,
+                       c.DomicilioComercial, c.DomicilioParticular, c.Provincia_Id, c.CodigoPostal,
+                       c.FechaAlta, c.FechaInha, c.SoloContado, c.Telefono, c.TelefonoMovil, c.EMail,
+                       c.Contacto, c.TipoDocumento, c.NroDocumento, c.NroIIBB, c.CategoriaIva,
+                       c.CondicionPago, c.Descuento, c.Observaciones, c.TipoDocArca,
+                       p.descripcion AS ProvinciaDescripcion,
+                       sz.localidad AS Localidad
+                FROM clientes c
+                LEFT JOIN provincias p ON c.Provincia_Id = p.id
+                LEFT JOIN subzonas sz ON c.SubZona_Id = sz.id
+                WHERE c.Id = @Id";
 
             using var connection = _context.CreateConnection();
             return await connection.QueryFirstOrDefaultAsync<Cliente>(query, new { Id = id });
