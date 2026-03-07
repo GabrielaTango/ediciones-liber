@@ -31,5 +31,7 @@ namespace BookstoreAPI.Models
         // Campos de navegación (JOIN)
         public string? ProvinciaDescripcion { get; set; }
         public string? Localidad { get; set; }
+        public string? ZonaDescripcion { get; set; }
+        public string? SubZonaDescripcion { get; set; }
     }
 }

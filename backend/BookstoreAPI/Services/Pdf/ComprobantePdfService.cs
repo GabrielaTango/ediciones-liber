@@ -47,7 +47,7 @@ namespace BookstoreAPI.Services.Pdf
                             page.Margin(2, Unit.Centimetre);
                             page.DefaultTextStyle(x => x.FontSize(10));
 
-                            page.Header().Element(h => ComposeHeader(h, comprobante));
+                            page.Header().Element(h => ComposeHeader(h, comprobante, cliente));
                             page.Content().Element(c => ComposeContent(c, comprobante, cliente, detalles));
                             page.Footer().Element(f => ComposeFooter(f, comprobante, cliente, detalles, esPrimeraHoja));
                         });
@@ -63,7 +63,7 @@ namespace BookstoreAPI.Services.Pdf
             }
         }
 
-        private void ComposeHeader(IContainer container, Comprobante comprobante)
+        private void ComposeHeader(IContainer container, Comprobante comprobante, Cliente cliente)
         {
             var tipoTexto = ObtenerTipoComprobanteCompleto(comprobante.TipoComprobante);
             var letraComprobante = ObtenerLetraComprobante(comprobante.TipoComprobante);
@@ -71,7 +71,7 @@ namespace BookstoreAPI.Services.Pdf
 
             container.Column(col =>
             {
-                col.Item().Row(row =>
+                col.Item().Border(1).Padding(10).Row(row =>
                 {
                     // Columna izquierda - Logo y datos empresa
                     row.RelativeItem(5).Column(column =>
@@ -81,29 +81,25 @@ namespace BookstoreAPI.Services.Pdf
                         column.Item().PaddingTop(5).Text("Av. Asamblea 1442 P. 7 Dto. 20 - C.P.: C1406HVR - CABA").FontSize(8);
                         column.Item().Text("Cel: 011 55012902 Marcos").FontSize(8);
                         column.Item().Text("Cel: 01135772183 Roberto").FontSize(8);
-                        column.Item().PaddingTop(3).Text("IVA EXENTO").FontSize(8);
                     });
 
-                    // Columna central - Letra del comprobante y tipo
+                    // Columna central - Letra del comprobante
                     row.RelativeItem(2).AlignTop().Column(column =>
                     {
                         column.Item().AlignCenter().Border(1).Background(Colors.Grey.Lighten3).Padding(10)
                             .Text(letraComprobante).FontSize(20).Bold().AlignCenter();
-                        column.Item().PaddingTop(3).AlignCenter().Text(tipoTexto).FontSize(9).Bold();
                     });
 
                     // Columna derecha - Datos del comprobante
                     row.RelativeItem(5).AlignTop().PaddingHorizontal(10).Column(column =>
                     {
-                        column.Item().Text("DATOS DEL COMPROBANTE").FontSize(12).Bold();
+                        column.Item().Text(tipoTexto.ToUpper()).FontSize(12).Bold();
                         column.Item().PaddingTop(5).Text($"Número: {comprobante.NumeroComprobante}");
                         column.Item().Text($"Fecha: {comprobante.Fecha:dd/MM/yyyy}");
-
-                        if (!string.IsNullOrEmpty(comprobante.CAE))
-                        {
-                            column.Item().Text($"CAE: {comprobante.CAE}");
-                            column.Item().Text($"Vto. CAE: {comprobante.VTO:dd/MM/yyyy}");
-                        }
+                        column.Item().PaddingTop(5).Text($"CUIT: {_cuit}").FontSize(8);
+                        column.Item().Text("IVA EXENTO").FontSize(8);
+                        column.Item().Text("ING. BRUTOS: EXENTO").FontSize(8);
+                        column.Item().Text("Fecha de inicio de actividades 01/09/2013").FontSize(8);
                     });
                 });
 
@@ -114,6 +110,27 @@ namespace BookstoreAPI.Services.Pdf
                         .Text("COMPROBANTE NO VÁLIDO COMO FACTURA")
                         .FontSize(12).Bold().FontColor(Colors.Red.Medium);
                 }
+
+                // Datos del cliente (pegado al header, sin separación)
+                col.Item().BorderLeft(1).BorderRight(1).BorderBottom(1).Padding(10).Row(r =>
+                {
+                    // Columna izquierda
+                    r.RelativeItem().Column(c =>
+                    {
+                        c.Item().Text($"Nombre: {cliente.Nombre}");
+                        c.Item().Text($"Documento: {cliente.NroDocumento ?? "-"}");
+                        c.Item().Text($"Dirección: {FormatDireccionCompleta(cliente)}");
+                        c.Item().Text($"Email: {cliente.EMail ?? "-"}");
+                    });
+
+                    // Columna derecha
+                    r.RelativeItem().AlignRight().Column(c =>
+                    {
+                        c.Item().AlignRight().Text($"Zona: {cliente.ZonaDescripcion ?? "-"}");
+                        c.Item().AlignRight().Text($"Sub-Zona: {cliente.SubZonaDescripcion ?? "-"}");
+                        c.Item().AlignRight().Text($"Teléfono: {cliente.Telefono ?? cliente.TelefonoMovil ?? "-"}");
+                    });
+                });
             });
         }
 
@@ -122,19 +139,6 @@ namespace BookstoreAPI.Services.Pdf
             container.Column(column =>
             {
                 column.Item().PaddingVertical(10);
-
-                // Datos del cliente
-                column.Item().Column(col =>
-                {
-                    col.Item().Text("DATOS DEL CLIENTE").FontSize(12).Bold();
-                    col.Item().PaddingTop(5).Text($"Nombre: {cliente.Nombre}");
-                    col.Item().Text($"Documento: {cliente.NroDocumento ?? "-"}");
-                    col.Item().Text($"Dirección: {FormatDireccionCompleta(cliente)}");
-                    col.Item().Text($"Teléfono: {cliente.Telefono ?? cliente.TelefonoMovil ?? "-"}");
-                    col.Item().Text($"Email: {cliente.EMail ?? "-"}");
-                });
-
-                column.Item().PaddingVertical(15);
 
                 // Tabla de detalles
                 column.Item().Table(table =>
@@ -184,7 +188,7 @@ namespace BookstoreAPI.Services.Pdf
             container.Column(column =>
             {
                 // Totales y QR
-                column.Item().Row(row =>
+                column.Item().Border(1).Padding(10).Row(row =>
                 {
                     // QR Code
                     row.ConstantItem(120).Column(col =>
@@ -264,8 +268,6 @@ namespace BookstoreAPI.Services.Pdf
                         }
                     });
                 });
-
-
             });
         }
 
@@ -324,6 +326,8 @@ namespace BookstoreAPI.Services.Pdf
         {
             try
             {
+                var afipConfig = _configProvider.GetConfigAsync().GetAwaiter().GetResult();
+                _cuit = afipConfig.CUIT;
                 var document = Document.Create(container =>
                 {
                     // ===== COMPROBANTE POR TRIPLICADO (3 páginas) =====
@@ -336,7 +340,7 @@ namespace BookstoreAPI.Services.Pdf
                             page.Margin(2, Unit.Centimetre);
                             page.DefaultTextStyle(x => x.FontSize(10));
 
-                            page.Header().Element(h => ComposeHeader(h, comprobante));
+                            page.Header().Element(h => ComposeHeader(h, comprobante, cliente));
                             page.Content().Element(c => ComposeContent(c, comprobante, cliente, detalles));
                             page.Footer().Element(f => ComposeFooter(f, comprobante, cliente, detalles, esPrimeraHoja));
                         });
@@ -370,6 +374,8 @@ namespace BookstoreAPI.Services.Pdf
         {
             try
             {
+                var afipConfig = _configProvider.GetConfigAsync().GetAwaiter().GetResult();
+                _cuit = afipConfig.CUIT;
                 var document = Document.Create(container =>
                 {
                     foreach (var item in lote)
@@ -383,7 +389,7 @@ namespace BookstoreAPI.Services.Pdf
                                 page.Margin(2, Unit.Centimetre);
                                 page.DefaultTextStyle(x => x.FontSize(10));
 
-                                page.Header().Element(h => ComposeHeader(h, item.comprobante));
+                                page.Header().Element(h => ComposeHeader(h, item.comprobante, item.cliente));
                                 page.Content().Element(c => ComposeContent(c, item.comprobante, item.cliente, item.detalles));
                                 page.Footer().Element(f => ComposeFooter(f, item.comprobante, item.cliente, item.detalles, esPrimeraHoja));
                             });

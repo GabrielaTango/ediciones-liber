@@ -37,10 +37,13 @@ namespace BookstoreAPI.Repositories
                        c.Contacto, c.TipoDocumento, c.NroDocumento, c.NroIIBB, c.CategoriaIva,
                        c.CondicionPago, c.Descuento, c.Observaciones, c.TipoDocArca,
                        p.descripcion AS ProvinciaDescripcion,
-                       sz.localidad AS Localidad
+                       sz.localidad AS Localidad,
+                       z.descripcion AS ZonaDescripcion,
+                       sz.descripcion AS SubZonaDescripcion
                 FROM clientes c
                 LEFT JOIN provincias p ON c.Provincia_Id = p.id
                 LEFT JOIN subzonas sz ON c.SubZona_Id = sz.id
+                LEFT JOIN zonas z ON c.Zona_Id = z.id
                 WHERE c.Id = @Id";
 
             using var connection = _context.CreateConnection();
