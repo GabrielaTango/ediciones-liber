@@ -76,5 +76,10 @@ namespace BookstoreAPI.Services
         {
             return await _gastoRepository.GetCategoriasAsync();
         }
+
+        public async Task<IEnumerable<Gasto>> GetGastosByFechaRangoAsync(DateTime fechaDesde, DateTime fechaHasta)
+        {
+            return await _gastoRepository.GetByFechaRangoAsync(fechaDesde, fechaHasta);
+        }
     }
 }

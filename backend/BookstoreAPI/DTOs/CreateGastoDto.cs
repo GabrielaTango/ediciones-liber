@@ -16,9 +16,8 @@ namespace BookstoreAPI.DTOs
         [StringLength(100, ErrorMessage = "La categoría no puede exceder 100 caracteres")]
         public string Categoria { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "La descripción es requerida")]
         [StringLength(255, ErrorMessage = "La descripción no puede exceder 255 caracteres")]
-        public string Descripcion { get; set; } = string.Empty;
+        public string? Descripcion { get; set; }
 
         [Required(ErrorMessage = "La fecha es requerida")]
         public DateTime Fecha { get; set; }

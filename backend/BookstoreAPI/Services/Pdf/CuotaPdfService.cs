@@ -134,7 +134,7 @@ namespace BookstoreAPI.Services.Pdf
                     columns.RelativeColumn();
                 });
 
-                foreach (var cuota in cuotas.OrderBy(c => c.NumeroCuota))
+                foreach (var cuota in cuotas.Where(c => c.NumeroCuota > 0).OrderByDescending(c => c.NumeroCuota))
                 {
                     RenderCuponCell(table, cliente, comprobante, cuota);
                 }
@@ -152,10 +152,13 @@ namespace BookstoreAPI.Services.Pdf
                 {
                     c.Spacing(3);
 
-                    // Encabezado del cupón
-                    c.Item().AlignCenter().Width(60).Image("./Images/LiberLogo.png");
-                    //c.Item().Border(1).Background(Colors.Grey.Lighten3)
-                        //.Padding(5).Text("BOOKSTORE APP").FontSize(11).Bold().AlignCenter();
+                    // Encabezado: logo a la izquierda, nro cuota a la derecha
+                    c.Item().Row(row =>
+                    {
+                        row.ConstantItem(60).AlignCenter().Image("./Images/LiberLogo.png");
+                        row.RelativeItem().AlignRight().AlignMiddle()
+                            .Text(etiquetaCuota).FontSize(16).Bold();
+                    });
 
                     // Datos del cliente
                     c.Item().Text($"Sr/a: {cliente.Nombre}").FontSize(9);
@@ -163,23 +166,11 @@ namespace BookstoreAPI.Services.Pdf
                     // Mes y año de vencimiento
                     c.Item().Text($"Mes: {cuota.Fecha?.ToString("MM/yyyy") ?? "-"}").FontSize(9);
 
-                    // Monto y número de cuota
-                    c.Item().Row(row =>
-                    {
-                        row.RelativeItem(70).Column(col =>
-                        {
-                            col.Item().Text($"Cuota: ${cuota.Importe:N2}").FontSize(10).Bold();
-                        });
-
-                        row.RelativeItem(30).Column(col =>
-                        {
-                            col.Item().AlignRight().Padding(4)
-                                .Text(etiquetaCuota).FontSize(16).Bold();
-                        });
-                    });
+                    // Monto
+                    c.Item().AlignRight().Text($"${cuota.Importe:N2}").FontSize(10).Bold();
 
                     // Información adicional
-                    c.Item().PaddingTop(3).Text($"Factura: {comprobante.NumeroComprobante}").FontSize(7);
+                    c.Item().AlignRight().PaddingTop(3).Text($"Factura: {comprobante.NumeroComprobante}").FontSize(7);
                 });
             });
         }

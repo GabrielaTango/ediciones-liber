@@ -28,7 +28,6 @@ namespace BookstoreAPI.Services
         {
             var zona = new Zona
             {
-                Codigo = dto.Codigo,
                 Descripcion = dto.Descripcion
             };
             return await _referenceRepository.CreateZonaAsync(zona);
@@ -38,7 +37,6 @@ namespace BookstoreAPI.Services
         {
             var zona = new Zona
             {
-                Codigo = dto.Codigo,
                 Descripcion = dto.Descripcion
             };
             return await _referenceRepository.UpdateZonaAsync(id, zona);
@@ -64,7 +62,6 @@ namespace BookstoreAPI.Services
         {
             var subZona = new SubZona
             {
-                Codigo = dto.Codigo,
                 Descripcion = dto.Descripcion,
                 ProvinciaId = dto.ProvinciaId,
                 CodigoPostal = dto.CodigoPostal,
@@ -77,7 +74,6 @@ namespace BookstoreAPI.Services
         {
             var subZona = new SubZona
             {
-                Codigo = dto.Codigo,
                 Descripcion = dto.Descripcion,
                 ProvinciaId = dto.ProvinciaId,
                 CodigoPostal = dto.CodigoPostal,
@@ -106,7 +102,6 @@ namespace BookstoreAPI.Services
         {
             var provincia = new Provincia
             {
-                Codigo = dto.Codigo,
                 Descripcion = dto.Descripcion
             };
             return await _referenceRepository.CreateProvinciaAsync(provincia);
@@ -116,7 +111,6 @@ namespace BookstoreAPI.Services
         {
             var provincia = new Provincia
             {
-                Codigo = dto.Codigo,
                 Descripcion = dto.Descripcion
             };
             return await _referenceRepository.UpdateProvinciaAsync(id, provincia);
@@ -142,7 +136,6 @@ namespace BookstoreAPI.Services
         {
             var vendedor = new Vendedor
             {
-                Codigo = dto.Codigo,
                 Descripcion = dto.Descripcion
             };
             return await _referenceRepository.CreateVendedorAsync(vendedor);
@@ -152,7 +145,6 @@ namespace BookstoreAPI.Services
         {
             var vendedor = new Vendedor
             {
-                Codigo = dto.Codigo,
                 Descripcion = dto.Descripcion
             };
             return await _referenceRepository.UpdateVendedorAsync(id, vendedor);
@@ -178,7 +170,6 @@ namespace BookstoreAPI.Services
         {
             var transporte = new Transporte
             {
-                Codigo = dto.Codigo,
                 Nombre = dto.Nombre,
                 Direccion = dto.Direccion,
                 Localidad = dto.Localidad,
@@ -192,7 +183,6 @@ namespace BookstoreAPI.Services
         {
             var transporte = new Transporte
             {
-                Codigo = dto.Codigo,
                 Nombre = dto.Nombre,
                 Direccion = dto.Direccion,
                 Localidad = dto.Localidad,

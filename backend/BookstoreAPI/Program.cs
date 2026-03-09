@@ -66,6 +66,8 @@ builder.Services.AddScoped<IIvaVentasPdfService, IvaVentasPdfService>();
 builder.Services.AddScoped<IIvaComprasPdfService, IvaComprasPdfService>();
 builder.Services.AddScoped<IRemitoPdfService, RemitoPdfService>();
 builder.Services.AddScoped<IArticulosVendidosZonaPdfService, ArticulosVendidosZonaPdfService>();
+builder.Services.AddScoped<IGastoPdfService, GastoPdfService>();
+builder.Services.AddScoped<IDeudoresPdfService, DeudoresPdfService>();
 
 var app = builder.Build();
 

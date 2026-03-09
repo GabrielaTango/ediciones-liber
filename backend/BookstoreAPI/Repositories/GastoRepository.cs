@@ -88,6 +88,18 @@ namespace BookstoreAPI.Repositories
             return count > 0;
         }
 
+        public async Task<IEnumerable<Gasto>> GetByFechaRangoAsync(DateTime fechaDesde, DateTime fechaHasta)
+        {
+            const string query = @"
+                SELECT Id, NroComprobante, Importe, Categoria, Descripcion, Fecha
+                FROM gastos
+                WHERE Fecha >= @FechaDesde AND Fecha <= @FechaHasta
+                ORDER BY Fecha DESC";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<Gasto>(query, new { FechaDesde = fechaDesde, FechaHasta = fechaHasta });
+        }
+
         public async Task<IEnumerable<string>> GetCategoriasAsync()
         {
             const string query = @"

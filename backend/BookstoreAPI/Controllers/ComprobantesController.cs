@@ -14,6 +14,7 @@ namespace BookstoreAPI.Controllers
         private readonly IComprobantePdfService _pdfService;
         private readonly ICuotaPdfService _cuotaPdfService;
         private readonly IIvaVentasPdfService _ivaVentasPdfService;
+        private readonly IDeudoresPdfService _deudoresPdfService;
         private readonly IComprobanteRepository _comprobanteRepository;
         private readonly IClienteRepository _clienteRepository;
         private readonly ICuotaRepository _cuotaRepository;
@@ -24,6 +25,7 @@ namespace BookstoreAPI.Controllers
             IComprobantePdfService pdfService,
             ICuotaPdfService cuotaPdfService,
             IIvaVentasPdfService ivaVentasPdfService,
+            IDeudoresPdfService deudoresPdfService,
             IComprobanteRepository comprobanteRepository,
             IClienteRepository clienteRepository,
             ICuotaRepository cuotaRepository,
@@ -33,6 +35,7 @@ namespace BookstoreAPI.Controllers
             _pdfService = pdfService;
             _cuotaPdfService = cuotaPdfService;
             _ivaVentasPdfService = ivaVentasPdfService;
+            _deudoresPdfService = deudoresPdfService;
             _comprobanteRepository = comprobanteRepository;
             _clienteRepository = clienteRepository;
             _cuotaRepository = cuotaRepository;
@@ -335,6 +338,28 @@ namespace BookstoreAPI.Controllers
             {
                 _logger.LogError(ex, "Error al obtener datos de deudores");
                 return StatusCode(500, new { message = "Error al obtener datos de deudores", error = ex.Message });
+            }
+        }
+
+        [HttpGet("deudores-pdf")]
+        public async Task<IActionResult> GetDeudoresPdf([FromQuery] int mes, [FromQuery] int anio, [FromQuery] int? zonaId, [FromQuery] int? vendedorId)
+        {
+            try
+            {
+                if (mes < 1 || mes > 12)
+                    return BadRequest(new { message = "El mes debe estar entre 1 y 12" });
+
+                if (anio < 2000 || anio > 2100)
+                    return BadRequest(new { message = "El año debe estar entre 2000 y 2100" });
+
+                var reporte = await _comprobanteRepository.GetDeudoresAsync(mes, anio, zonaId, vendedorId);
+                var pdf = _deudoresPdfService.GenerarPdf(reporte);
+                return File(pdf, "application/pdf", $"deudores-{mes:D2}-{anio}.pdf");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al generar PDF de deudores");
+                return StatusCode(500, new { message = "Error al generar PDF de deudores", error = ex.Message });
             }
         }
 

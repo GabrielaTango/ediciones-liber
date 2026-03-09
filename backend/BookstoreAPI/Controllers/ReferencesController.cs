@@ -61,6 +61,10 @@ namespace BookstoreAPI.Controllers
                 var zona = await _referenceService.CreateZonaAsync(dto);
                 return CreatedAtAction(nameof(GetZonaById), new { id = zona.Id }, zona);
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al crear zona");
@@ -80,6 +84,10 @@ namespace BookstoreAPI.Controllers
                 if (zona == null)
                     return NotFound(new { message = $"Zona con ID {id} no encontrada" });
                 return Ok(zona);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -149,6 +157,10 @@ namespace BookstoreAPI.Controllers
                 var subzona = await _referenceService.CreateSubZonaAsync(dto);
                 return CreatedAtAction(nameof(GetSubZonaById), new { id = subzona.Id }, subzona);
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al crear subzona");
@@ -168,6 +180,10 @@ namespace BookstoreAPI.Controllers
                 if (subzona == null)
                     return NotFound(new { message = $"SubZona con ID {id} no encontrada" });
                 return Ok(subzona);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -237,6 +253,10 @@ namespace BookstoreAPI.Controllers
                 var provincia = await _referenceService.CreateProvinciaAsync(dto);
                 return CreatedAtAction(nameof(GetProvinciaById), new { id = provincia.Id }, provincia);
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al crear provincia");
@@ -256,6 +276,10 @@ namespace BookstoreAPI.Controllers
                 if (provincia == null)
                     return NotFound(new { message = $"Provincia con ID {id} no encontrada" });
                 return Ok(provincia);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -325,6 +349,10 @@ namespace BookstoreAPI.Controllers
                 var vendedor = await _referenceService.CreateVendedorAsync(dto);
                 return CreatedAtAction(nameof(GetVendedorById), new { id = vendedor.Id }, vendedor);
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al crear vendedor");
@@ -344,6 +372,10 @@ namespace BookstoreAPI.Controllers
                 if (vendedor == null)
                     return NotFound(new { message = $"Vendedor con ID {id} no encontrado" });
                 return Ok(vendedor);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -413,6 +445,10 @@ namespace BookstoreAPI.Controllers
                 var transporte = await _referenceService.CreateTransporteAsync(dto);
                 return CreatedAtAction(nameof(GetTransporteById), new { id = transporte.Id }, transporte);
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al crear transporte");
@@ -432,6 +468,10 @@ namespace BookstoreAPI.Controllers
                 if (transporte == null)
                     return NotFound(new { message = $"Transporte con ID {id} no encontrado" });
                 return Ok(transporte);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {

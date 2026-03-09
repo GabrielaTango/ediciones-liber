@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using BookstoreAPI.DTOs;
 using BookstoreAPI.Services;
+using BookstoreAPI.Services.Pdf;
 
 namespace BookstoreAPI.Controllers
 {
@@ -9,11 +10,13 @@ namespace BookstoreAPI.Controllers
     public class GastosController : ControllerBase
     {
         private readonly IGastoService _gastoService;
+        private readonly IGastoPdfService _gastoPdfService;
         private readonly ILogger<GastosController> _logger;
 
-        public GastosController(IGastoService gastoService, ILogger<GastosController> logger)
+        public GastosController(IGastoService gastoService, IGastoPdfService gastoPdfService, ILogger<GastosController> logger)
         {
             _gastoService = gastoService;
+            _gastoPdfService = gastoPdfService;
             _logger = logger;
         }
 
@@ -108,6 +111,37 @@ namespace BookstoreAPI.Controllers
             {
                 _logger.LogError(ex, "Error al actualizar el gasto con ID {Id}", id);
                 return StatusCode(500, new { message = "Error al actualizar el gasto" });
+            }
+        }
+
+        [HttpGet("listado")]
+        public async Task<IActionResult> GetListado([FromQuery] DateTime fechaDesde, [FromQuery] DateTime fechaHasta)
+        {
+            try
+            {
+                var gastos = await _gastoService.GetGastosByFechaRangoAsync(fechaDesde, fechaHasta);
+                return Ok(gastos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener el listado de gastos");
+                return StatusCode(500, new { message = "Error al obtener el listado de gastos" });
+            }
+        }
+
+        [HttpGet("listado-pdf")]
+        public async Task<IActionResult> GetListadoPdf([FromQuery] DateTime fechaDesde, [FromQuery] DateTime fechaHasta)
+        {
+            try
+            {
+                var gastos = await _gastoService.GetGastosByFechaRangoAsync(fechaDesde, fechaHasta);
+                var pdf = _gastoPdfService.GenerarPdf(gastos.ToList(), fechaDesde, fechaHasta);
+                return File(pdf, "application/pdf", $"listado-gastos-{fechaDesde:yyyyMMdd}-{fechaHasta:yyyyMMdd}.pdf");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al generar PDF del listado de gastos");
+                return StatusCode(500, new { message = "Error al generar el PDF del listado de gastos" });
             }
         }
 

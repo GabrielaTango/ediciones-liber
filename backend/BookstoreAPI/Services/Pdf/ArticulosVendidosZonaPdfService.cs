@@ -33,17 +33,21 @@ namespace BookstoreAPI.Services.Pdf
             {
                 column.Item().BorderTop(2).BorderBottom(2).Row(row =>
                 {
-                    row.RelativeItem(80).Padding(2)
+                    row.ConstantItem(60).Padding(2)
+                        .AlignCenter()
+                        .AlignMiddle()
+                        .Image("./Images/LiberLogo.png");
+
+                    row.RelativeItem().Padding(2)
                         .Column(c =>
                         {
-                            c.Item().Text("EDICIONES LIBER de Roberto Passarelli y Marcos E. Passarelli S.H").FontSize(12).Bold();
-                            c.Item().Text("Av. Asamblea 1442 P 7 Dto 20 - CP: C1406HVR - C.A.B.A.");
-                            c.Item().Text($"LISTADO DE ARTICULOS VENDIDOS POR ZONA").Bold();
-                            c.Item().Text($"Zona: {zonaNombre}").FontSize(10);
-                            c.Item().Text($"Período: Últimos 3 años").FontSize(9);
+                            c.Item().Text("de Roberto Passarelli y Marcos E. Passarelli S.H").FontSize(10).Bold();
+                            c.Item().Text("Av. Asamblea 1442 P 7 Dto 20 - CP: C1406HVR - C.A.B.A.").FontSize(8);
+                            c.Item().Text($"C.U.I.T. 30-71417888-8    ARTICULOS VENDIDOS POR ZONA").FontSize(10);
+                            c.Item().Text($"Zona: {zonaNombre} - Período: Últimos 3 años").FontSize(10);
                         });
 
-                    row.RelativeItem(20).Padding(2)
+                    row.ConstantItem(100).Padding(2)
                         .AlignRight()
                         .Column(c =>
                         {
