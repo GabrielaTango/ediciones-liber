@@ -3,7 +3,7 @@ export interface Gasto {
   nroComprobante: string;
   importe: number;
   categoria: string;
-  descripcion: string;
+  descripcion?: string;
   fecha: string;
 }
 
@@ -11,7 +11,7 @@ export interface CreateGastoDto {
   nroComprobante: string;
   importe: number;
   categoria: string;
-  descripcion: string;
+  descripcion?: string;
   fecha: string;
 }
 
@@ -19,6 +19,6 @@ export interface UpdateGastoDto {
   nroComprobante: string;
   importe: number;
   categoria: string;
-  descripcion: string;
+  descripcion?: string;
   fecha: string;
 }

@@ -20,7 +20,7 @@ const ArticuloFormPage = () => {
     observaciones: '',
     tomos: undefined,
     tema: '',
-    precio: undefined,
+    precio: 0,
   });
 
   const [loading, setLoading] = useState(false);
@@ -214,7 +214,7 @@ const ArticuloFormPage = () => {
                     type="number"
                     className="form-control"
                     name="precio"
-                    value={formData.precio || ''}
+                    value={formData.precio ?? ''}
                     onChange={handleChange}
                     onFocus={(e) => e.target.select()}
                     placeholder="0.00"

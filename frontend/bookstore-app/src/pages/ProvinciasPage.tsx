@@ -15,7 +15,6 @@ const ProvinciasPage = () => {
     if (!filtro.trim()) return provincias;
     const busqueda = filtro.toLowerCase();
     return provincias.filter(p =>
-      (p.codigo?.toLowerCase() || '').includes(busqueda) ||
       (p.descripcion?.toLowerCase() || '').includes(busqueda)
     );
   }, [provincias, filtro]);
@@ -24,7 +23,6 @@ const ProvinciasPage = () => {
   const [provinciaToDelete, setProvinciaToDelete] = useState<Provincia | null>(null);
   const [editingProvincia, setEditingProvincia] = useState<Provincia | null>(null);
   const [formData, setFormData] = useState<CreateProvinciaDto | UpdateProvinciaDto>({
-    codigo: '',
     descripcion: '',
   });
 
@@ -48,14 +46,13 @@ const ProvinciasPage = () => {
 
   const handleCreate = () => {
     setEditingProvincia(null);
-    setFormData({ codigo: '', descripcion: '' });
+    setFormData({ descripcion: '' });
     setShowModal(true);
   };
 
   const handleEdit = (provincia: Provincia) => {
     setEditingProvincia(provincia);
     setFormData({
-      codigo: provincia.codigo || '',
       descripcion: provincia.descripcion || '',
     });
     setShowModal(true);
@@ -70,8 +67,8 @@ const ProvinciasPage = () => {
     e.preventDefault();
     setError(null);
 
-    if (!formData.codigo.trim() || !formData.descripcion.trim()) {
-      setError('Código y descripción son obligatorios');
+    if (!formData.descripcion.trim()) {
+      setError('La descripción es obligatoria');
       return;
     }
 
@@ -133,7 +130,7 @@ const ProvinciasPage = () => {
               <input
                 type="text"
                 className="form-control"
-                placeholder="Buscar por código o descripción..."
+                placeholder="Buscar por nombre..."
                 value={filtro}
                 onChange={(e) => setFiltro(e.target.value)}
               />
@@ -153,15 +150,13 @@ const ProvinciasPage = () => {
               <table className="custom-table">
                 <thead>
                   <tr>
-                    <th>Código</th>
-                    <th>Descripción</th>
+                    <th>Nombre</th>
                     <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {provinciasFiltradas.map((provincia) => (
                     <tr key={provincia.id}>
-                      <td>{provincia.codigo || '-'}</td>
                       <td>{provincia.descripcion || '-'}</td>
                       <td>
                         <IconButton
@@ -206,22 +201,7 @@ const ProvinciasPage = () => {
                 <div className="modal-body">
                   <div className="mb-3">
                     <label className="form-label">
-                      Código <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="codigo"
-                      value={formData.codigo}
-                      onChange={handleChange}
-                      placeholder="Código"
-                      maxLength={25}
-                      required
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Descripción <span className="text-danger">*</span>
+                      Nombre <span className="text-danger">*</span>
                     </label>
                     <input
                       type="text"
@@ -229,7 +209,7 @@ const ProvinciasPage = () => {
                       name="descripcion"
                       value={formData.descripcion}
                       onChange={handleChange}
-                      placeholder="Descripción"
+                      placeholder="Nombre de la provincia"
                       maxLength={100}
                       required
                     />

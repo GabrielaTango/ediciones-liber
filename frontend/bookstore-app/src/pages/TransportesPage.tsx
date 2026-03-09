@@ -15,7 +15,6 @@ const TransportesPage = () => {
   const [transporteToDelete, setTransporteToDelete] = useState<Transporte | null>(null);
   const [editingTransporte, setEditingTransporte] = useState<Transporte | null>(null);
   const [formData, setFormData] = useState<CreateTransporteDto | UpdateTransporteDto>({
-    codigo: '',
     nombre: '',
     direccion: '',
     localidad: '',
@@ -48,7 +47,6 @@ const TransportesPage = () => {
   const handleCreate = () => {
     setEditingTransporte(null);
     setFormData({
-      codigo: '',
       nombre: '',
       direccion: '',
       localidad: '',
@@ -61,7 +59,6 @@ const TransportesPage = () => {
   const handleEdit = (transporte: Transporte) => {
     setEditingTransporte(transporte);
     setFormData({
-      codigo: transporte.codigo || '',
       nombre: transporte.nombre || '',
       direccion: transporte.direccion || '',
       localidad: transporte.localidad || '',
@@ -150,7 +147,6 @@ const TransportesPage = () => {
               <table className="custom-table">
                 <thead>
                   <tr>
-                    <th>Código</th>
                     <th>Nombre</th>
                     <th>Dirección</th>
                     <th>Localidad</th>
@@ -162,7 +158,6 @@ const TransportesPage = () => {
                 <tbody>
                   {transportes.map((transporte) => (
                     <tr key={transporte.id}>
-                      <td>{transporte.codigo || '-'}</td>
                       <td>{transporte.nombre}</td>
                       <td>{transporte.direccion || '-'}</td>
                       <td>{transporte.localidad || '-'}</td>
@@ -210,19 +205,7 @@ const TransportesPage = () => {
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
                   <div className="row">
-                    <div className="col-md-4 mb-3">
-                      <label className="form-label">Código</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        name="codigo"
-                        value={formData.codigo || ''}
-                        onChange={handleChange}
-                        placeholder="Código"
-                        maxLength={20}
-                      />
-                    </div>
-                    <div className="col-md-8 mb-3">
+                    <div className="col-md-12 mb-3">
                       <label className="form-label">
                         Nombre <span className="text-danger">*</span>
                       </label>

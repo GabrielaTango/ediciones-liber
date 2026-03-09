@@ -129,6 +129,15 @@ export const comprobanteService = {
     return response.data;
   },
 
+  openDeudoresPdf: (mes: number, anio: number, zonaId?: number, vendedorId?: number): void => {
+    const params = new URLSearchParams();
+    params.append('mes', mes.toString());
+    params.append('anio', anio.toString());
+    if (zonaId) params.append('zonaId', zonaId.toString());
+    if (vendedorId) params.append('vendedorId', vendedorId.toString());
+    window.open(`${API_BASE_URL}/comprobantes/deudores-pdf?${params.toString()}`, '_blank');
+  },
+
   getArticulosVendidosZona: async (zonaId?: number): Promise<ArticulosVendidosZonaReporte> => {
     const params = new URLSearchParams();
     if (zonaId) params.append('zonaId', zonaId.toString());

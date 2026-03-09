@@ -127,7 +127,7 @@ const ComprobantesPage = () => {
   const zonaOptions = useMemo<SelectOption[]>(() =>
     zonas.map(z => ({
       value: z.id,
-      label: z.descripcion || z.codigo || `Zona ${z.id}`
+      label: z.descripcion || `Zona ${z.id}`
     })), [zonas]);
 
   const clienteOptions = useMemo<SelectOption[]>(() =>
@@ -139,7 +139,7 @@ const ComprobantesPage = () => {
   const vendedorOptions = useMemo<SelectOption[]>(() =>
     vendedores.map(v => ({
       value: v.id,
-      label: v.descripcion || v.codigo || `Vendedor ${v.id}`
+      label: v.descripcion || `Vendedor ${v.id}`
     })), [vendedores]);
 
   const formatDate = (dateString: string) => {

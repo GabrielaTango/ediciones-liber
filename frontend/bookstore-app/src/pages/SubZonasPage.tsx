@@ -16,7 +16,6 @@ const SubZonasPage = () => {
     if (!filtro.trim()) return subzonas;
     const busqueda = filtro.toLowerCase();
     return subzonas.filter(s =>
-      (s.codigo?.toLowerCase() || '').includes(busqueda) ||
       (s.descripcion?.toLowerCase() || '').includes(busqueda)
     );
   }, [subzonas, filtro]);
@@ -25,7 +24,6 @@ const SubZonasPage = () => {
   const [subzonaToDelete, setSubZonaToDelete] = useState<SubZona | null>(null);
   const [editingSubZona, setEditingSubZona] = useState<SubZona | null>(null);
   const [formData, setFormData] = useState<CreateSubZonaDto | UpdateSubZonaDto>({
-    codigo: '',
     descripcion: '',
     provinciaId: 0,
     codigoPostal: '',
@@ -71,7 +69,6 @@ const SubZonasPage = () => {
   const handleCreate = () => {
     setEditingSubZona(null);
     setFormData({
-      codigo: '',
       descripcion: '',
       provinciaId: 0,
       codigoPostal: '',
@@ -83,7 +80,6 @@ const SubZonasPage = () => {
   const handleEdit = (subzona: SubZona) => {
     setEditingSubZona(subzona);
     setFormData({
-      codigo: subzona.codigo || '',
       descripcion: subzona.descripcion || '',
       provinciaId: subzona.provinciaId || 0,
       codigoPostal: subzona.codigoPostal || '',
@@ -101,8 +97,8 @@ const SubZonasPage = () => {
     e.preventDefault();
     setError(null);
 
-    if (!formData.codigo.trim() || !formData.descripcion.trim()) {
-      setError('Código y descripción son obligatorios');
+    if (!formData.descripcion.trim()) {
+      setError('La descripción es obligatoria');
       return;
     }
 
@@ -183,7 +179,7 @@ const SubZonasPage = () => {
               <input
                 type="text"
                 className="form-control"
-                placeholder="Buscar por código o descripción..."
+                placeholder="Buscar por nombre..."
                 value={filtro}
                 onChange={(e) => setFiltro(e.target.value)}
               />
@@ -203,8 +199,7 @@ const SubZonasPage = () => {
               <table className="custom-table">
                 <thead>
                   <tr>
-                    <th>Código</th>
-                    <th>Descripción</th>
+                    <th>Nombre</th>
                     <th>Provincia</th>
                     <th>Código Postal</th>
                     <th>Localidad</th>
@@ -214,7 +209,6 @@ const SubZonasPage = () => {
                 <tbody>
                   {subzonasFiltradas.map((subzona) => (
                     <tr key={subzona.id}>
-                      <td>{subzona.codigo || '-'}</td>
                       <td>{subzona.descripcion || '-'}</td>
                       <td>{subzona.provinciaDescripcion || '-'}</td>
                       <td>{subzona.codigoPostal || '-'}</td>
@@ -262,22 +256,7 @@ const SubZonasPage = () => {
                 <div className="modal-body">
                   <div className="mb-3">
                     <label className="form-label">
-                      Código <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="codigo"
-                      value={formData.codigo}
-                      onChange={handleChange}
-                      placeholder="Código"
-                      maxLength={25}
-                      required
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Descripción <span className="text-danger">*</span>
+                      Nombre <span className="text-danger">*</span>
                     </label>
                     <input
                       type="text"
@@ -285,7 +264,7 @@ const SubZonasPage = () => {
                       name="descripcion"
                       value={formData.descripcion}
                       onChange={handleChange}
-                      placeholder="Descripción"
+                      placeholder="Nombre de la subzona"
                       maxLength={100}
                       required
                     />

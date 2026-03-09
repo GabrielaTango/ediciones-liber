@@ -128,14 +128,15 @@ const IvaComprasPage = () => {
               >
                 {loading ? 'Buscando...' : 'Buscar'}
               </GradientButton>
-              <GradientButton
-                icon="fa-solid fa-file-pdf"
-                onClick={handleDownloadPdf}
-                disabled={!compras.length}
-                variant="danger"
-              >
-                Descargar PDF
-              </GradientButton>
+              {compras.length > 0 && (
+                <button
+                  className="btn btn-outline-danger"
+                  onClick={handleDownloadPdf}
+                >
+                  <i className="fa-solid fa-file-pdf me-2"></i>
+                  Generar PDF
+                </button>
+              )}
             </div>
           </div>
         </div>

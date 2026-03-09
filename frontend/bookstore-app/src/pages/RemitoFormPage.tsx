@@ -57,7 +57,7 @@ const RemitoFormPage = () => {
   const transporteOptions = useMemo<SelectOption[]>(() =>
     transportes.map(t => ({
       value: t.id,
-      label: t.codigo ? `${t.codigo} - ${t.nombre}` : t.nombre
+      label: t.nombre
     })), [transportes]);
 
   useEffect(() => {

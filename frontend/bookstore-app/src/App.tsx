@@ -28,6 +28,7 @@ import ComprobanteProveedorFormPage from './pages/ComprobanteProveedorFormPage';
 import ComprobanteProveedorViewPage from './pages/ComprobanteProveedorViewPage';
 import CuotasProveedoresPage from './pages/CuotasProveedoresPage';
 import IvaComprasPage from './pages/IvaComprasPage';
+import ListadoGastosPage from './pages/ListadoGastosPage';
 import ConfiguracionPage from './pages/ConfiguracionPage';
 
 function App() {
@@ -67,6 +68,7 @@ function App() {
         <Route path="comprobantes-proveedores/ver/:id" element={<ComprobanteProveedorViewPage />} />
         <Route path="cuotas-proveedores" element={<CuotasProveedoresPage />} />
         <Route path="iva-compras" element={<IvaComprasPage />} />
+        <Route path="listado-gastos" element={<ListadoGastosPage />} />
         <Route path="transportes" element={<TransportesPage />} />
         <Route path="configuracion" element={<ConfiguracionPage />} />
       </Route>

@@ -67,6 +67,10 @@ const DeudoresPage = () => {
     loadDeudores();
   };
 
+  const handlePdf = () => {
+    comprobanteService.openDeudoresPdf(mes, anio, zonaId || undefined, vendedorId || undefined);
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
@@ -199,7 +203,7 @@ const DeudoresPage = () => {
                 onChange={(e) => setFiltroComprobante(e.target.value)}
               />
             </div>
-            <div className="col-md-3">
+            <div className="col-md-3 d-flex gap-2">
               <GradientButton
                 icon={loading ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-search'}
                 onClick={handleBuscar}
@@ -207,6 +211,15 @@ const DeudoresPage = () => {
               >
                 {loading ? 'Buscando...' : 'Buscar'}
               </GradientButton>
+              {reporte && reporte.deudores.length > 0 && (
+                <button
+                  className="btn btn-outline-danger"
+                  onClick={handlePdf}
+                >
+                  <i className="fa-solid fa-file-pdf me-2"></i>
+                  Generar PDF
+                </button>
+              )}
             </div>
           </div>
         </div>

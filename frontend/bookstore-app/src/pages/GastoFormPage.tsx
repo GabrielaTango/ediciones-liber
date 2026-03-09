@@ -92,11 +92,6 @@ const GastoFormPage = () => {
       return;
     }
 
-    if (!formData.descripcion.trim()) {
-      setError('La descripción es obligatoria');
-      return;
-    }
-
     if (!formData.fecha) {
       setError('La fecha es obligatoria');
       return;
@@ -216,15 +211,14 @@ const GastoFormPage = () => {
             </div>
 
             <div className="col-12">
-              <FormGroup label="Descripción" required>
+              <FormGroup label="Descripción">
                 <textarea
                   className="form-control"
                   rows={3}
                   name="descripcion"
                   value={formData.descripcion}
                   onChange={handleChange}
-                  placeholder="Descripción detallada del gasto"
-                  required
+                  placeholder="Descripción detallada del gasto (opcional)"
                 />
               </FormGroup>
             </div>

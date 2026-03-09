@@ -232,6 +232,16 @@ const Sidebar = ({ collapsed, onToggleCollapse }: SidebarProps) => {
               <span>Art. x Zona</span>
             </Link>
           </li>
+          <li>
+            <Link
+              to="/listado-gastos"
+              className={isActive('/listado-gastos') ? 'active' : ''}
+              onClick={closeMobileMenu}
+            >
+              <Icon name="fa-solid fa-receipt" />
+              <span>Gastos</span>
+            </Link>
+          </li>
           {/* References Section */}
           <li style={{ marginTop: '2rem' }}>
             <div

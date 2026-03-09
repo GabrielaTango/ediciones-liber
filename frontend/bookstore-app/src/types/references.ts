@@ -1,24 +1,20 @@
 // Zona
 export interface Zona {
   id: number;
-  codigo?: string;
   descripcion?: string;
 }
 
 export interface CreateZonaDto {
-  codigo: string;
   descripcion: string;
 }
 
 export interface UpdateZonaDto {
-  codigo: string;
   descripcion: string;
 }
 
 // SubZona
 export interface SubZona {
   id: number;
-  codigo?: string;
   descripcion?: string;
   provinciaId: number;
   codigoPostal?: string;
@@ -27,7 +23,6 @@ export interface SubZona {
 }
 
 export interface CreateSubZonaDto {
-  codigo: string;
   descripcion: string;
   provinciaId: number;
   codigoPostal: string;
@@ -35,7 +30,6 @@ export interface CreateSubZonaDto {
 }
 
 export interface UpdateSubZonaDto {
-  codigo: string;
   descripcion: string;
   provinciaId: number;
   codigoPostal: string;
@@ -45,41 +39,34 @@ export interface UpdateSubZonaDto {
 // Provincia
 export interface Provincia {
   id: number;
-  codigo?: string;
   descripcion?: string;
 }
 
 export interface CreateProvinciaDto {
-  codigo: string;
   descripcion: string;
 }
 
 export interface UpdateProvinciaDto {
-  codigo: string;
   descripcion: string;
 }
 
 // Vendedor
 export interface Vendedor {
   id: number;
-  codigo?: string;
   descripcion?: string;
 }
 
 export interface CreateVendedorDto {
-  codigo: string;
   descripcion: string;
 }
 
 export interface UpdateVendedorDto {
-  codigo: string;
   descripcion: string;
 }
 
 // Transporte
 export interface Transporte {
   id: number;
-  codigo?: string;
   nombre: string;
   direccion?: string;
   localidad?: string;
@@ -89,7 +76,6 @@ export interface Transporte {
 }
 
 export interface CreateTransporteDto {
-  codigo?: string;
   nombre: string;
   direccion?: string;
   localidad?: string;
@@ -98,7 +84,6 @@ export interface CreateTransporteDto {
 }
 
 export interface UpdateTransporteDto {
-  codigo?: string;
   nombre: string;
   direccion?: string;
   localidad?: string;

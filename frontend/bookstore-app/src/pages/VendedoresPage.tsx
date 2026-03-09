@@ -15,7 +15,6 @@ const VendedoresPage = () => {
     if (!filtro.trim()) return vendedores;
     const busqueda = filtro.toLowerCase();
     return vendedores.filter(v =>
-      (v.codigo?.toLowerCase() || '').includes(busqueda) ||
       (v.descripcion?.toLowerCase() || '').includes(busqueda)
     );
   }, [vendedores, filtro]);
@@ -24,7 +23,6 @@ const VendedoresPage = () => {
   const [vendedorToDelete, setVendedorToDelete] = useState<Vendedor | null>(null);
   const [editingVendedor, setEditingVendedor] = useState<Vendedor | null>(null);
   const [formData, setFormData] = useState<CreateVendedorDto | UpdateVendedorDto>({
-    codigo: '',
     descripcion: '',
   });
 
@@ -48,14 +46,13 @@ const VendedoresPage = () => {
 
   const handleCreate = () => {
     setEditingVendedor(null);
-    setFormData({ codigo: '', descripcion: '' });
+    setFormData({ descripcion: '' });
     setShowModal(true);
   };
 
   const handleEdit = (vendedor: Vendedor) => {
     setEditingVendedor(vendedor);
     setFormData({
-      codigo: vendedor.codigo || '',
       descripcion: vendedor.descripcion || '',
     });
     setShowModal(true);
@@ -70,8 +67,8 @@ const VendedoresPage = () => {
     e.preventDefault();
     setError(null);
 
-    if (!formData.codigo.trim() || !formData.descripcion.trim()) {
-      setError('Código y descripción son obligatorios');
+    if (!formData.descripcion.trim()) {
+      setError('La descripción es obligatoria');
       return;
     }
 
@@ -133,7 +130,7 @@ const VendedoresPage = () => {
               <input
                 type="text"
                 className="form-control"
-                placeholder="Buscar por código o descripción..."
+                placeholder="Buscar por nombre..."
                 value={filtro}
                 onChange={(e) => setFiltro(e.target.value)}
               />
@@ -153,15 +150,13 @@ const VendedoresPage = () => {
               <table className="custom-table">
                 <thead>
                   <tr>
-                    <th>Código</th>
-                    <th>Descripción</th>
+                    <th>Nombre</th>
                     <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {vendedoresFiltrados.map((vendedor) => (
                     <tr key={vendedor.id}>
-                      <td>{vendedor.codigo || '-'}</td>
                       <td>{vendedor.descripcion || '-'}</td>
                       <td>
                         <IconButton
@@ -206,22 +201,7 @@ const VendedoresPage = () => {
                 <div className="modal-body">
                   <div className="mb-3">
                     <label className="form-label">
-                      Código <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="codigo"
-                      value={formData.codigo}
-                      onChange={handleChange}
-                      placeholder="Código"
-                      maxLength={25}
-                      required
-                    />
-                  </div>
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Descripción <span className="text-danger">*</span>
+                      Nombre <span className="text-danger">*</span>
                     </label>
                     <input
                       type="text"
@@ -229,7 +209,7 @@ const VendedoresPage = () => {
                       name="descripcion"
                       value={formData.descripcion}
                       onChange={handleChange}
-                      placeholder="Descripción"
+                      placeholder="Nombre del vendedor"
                       maxLength={100}
                       required
                     />
