@@ -2,6 +2,7 @@ using BookstoreAPI.DTOs;
 using BookstoreAPI.Repositories;
 using BookstoreAPI.Services.Afip;
 using Dapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MySql.Data.MySqlClient;
 using System.Diagnostics;
@@ -12,6 +13,7 @@ namespace BookstoreAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ConfiguracionController : ControllerBase
     {
         private readonly IConfiguracionRepository _repo;

@@ -1,12 +1,14 @@
 using BookstoreAPI.DTOs;
 using BookstoreAPI.Models;
 using BookstoreAPI.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookstoreAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class CuotasController : ControllerBase
     {
         private readonly ICuotaRepository _cuotaRepository;

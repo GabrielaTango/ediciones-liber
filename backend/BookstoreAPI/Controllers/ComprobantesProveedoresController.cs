@@ -2,12 +2,14 @@ using BookstoreAPI.DTOs;
 using BookstoreAPI.Repositories;
 using BookstoreAPI.Services;
 using BookstoreAPI.Services.Pdf;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookstoreAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ComprobantesProveedoresController : ControllerBase
     {
         private readonly IComprobanteProveedorService _service;

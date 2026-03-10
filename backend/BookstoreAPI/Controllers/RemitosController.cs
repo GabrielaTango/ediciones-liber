@@ -1,12 +1,14 @@
 using BookstoreAPI.DTOs;
 using BookstoreAPI.Services;
 using BookstoreAPI.Services.Pdf;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookstoreAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class RemitosController : ControllerBase
     {
         private readonly IRemitoService _remitoService;

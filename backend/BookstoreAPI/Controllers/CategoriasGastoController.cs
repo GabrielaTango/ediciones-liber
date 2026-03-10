@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using BookstoreAPI.DTOs;
 using BookstoreAPI.Services;
@@ -6,6 +7,7 @@ namespace BookstoreAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class CategoriasGastoController : ControllerBase
     {
         private readonly ICategoriaGastoService _categoriaService;

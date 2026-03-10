@@ -1,11 +1,13 @@
 using BookstoreAPI.DTOs;
 using BookstoreAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookstoreAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ReferencesController : ControllerBase
     {
         private readonly IReferenceService _referenceService;

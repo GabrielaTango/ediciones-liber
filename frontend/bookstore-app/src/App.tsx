@@ -1,5 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
+import PrivateRoute from './components/PrivateRoute';
+import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import ClientesPage from './pages/ClientesPage';
 import ClienteFormPage from './pages/ClienteFormPage';
@@ -30,11 +32,20 @@ import CuotasProveedoresPage from './pages/CuotasProveedoresPage';
 import IvaComprasPage from './pages/IvaComprasPage';
 import ListadoGastosPage from './pages/ListadoGastosPage';
 import ConfiguracionPage from './pages/ConfiguracionPage';
+import UsuariosPage from './pages/UsuariosPage';
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<MainLayout />}>
+      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/"
+        element={
+          <PrivateRoute>
+            <MainLayout />
+          </PrivateRoute>
+        }
+      >
         <Route index element={<Dashboard />} />
         <Route path="clientes" element={<ClientesPage />} />
         <Route path="clientes/nuevo" element={<ClienteFormPage />} />
@@ -71,6 +82,7 @@ function App() {
         <Route path="listado-gastos" element={<ListadoGastosPage />} />
         <Route path="transportes" element={<TransportesPage />} />
         <Route path="configuracion" element={<ConfiguracionPage />} />
+        <Route path="usuarios" element={<UsuariosPage />} />
       </Route>
     </Routes>
   );

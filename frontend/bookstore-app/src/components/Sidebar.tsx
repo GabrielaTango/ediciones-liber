@@ -5,9 +5,10 @@
  * Features: Dark theme, gradient brand icon, active state indicators, mobile toggle.
  */
 
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { Icon } from './Icon';
+import { useAuth } from '../contexts/AuthContext';
 import shopImg from '../assets/shop.png';
 
 interface SidebarProps {
@@ -17,6 +18,8 @@ interface SidebarProps {
 
 const Sidebar = ({ collapsed, onToggleCollapse }: SidebarProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { usuario, logout } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const isActive = (path: string) => {
@@ -320,6 +323,20 @@ const Sidebar = ({ collapsed, onToggleCollapse }: SidebarProps) => {
 
           {/* Configuración */}
           <li style={{ marginTop: '2rem' }}>
+            <div
+              style={{
+                padding: '0.5rem 1.5rem',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: 'rgba(255, 255, 255, 0.5)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}
+            >
+              Sistema
+            </div>
+          </li>
+          <li>
             <Link
               to="/configuracion"
               className={isActive('/configuracion') ? 'active' : ''}
@@ -329,11 +346,22 @@ const Sidebar = ({ collapsed, onToggleCollapse }: SidebarProps) => {
               <span>Configuración</span>
             </Link>
           </li>
+          {usuario?.rol === 'admin' && (
+            <li>
+              <Link
+                to="/usuarios"
+                className={isActive('/usuarios') ? 'active' : ''}
+                onClick={closeMobileMenu}
+              >
+                <Icon name="fa-solid fa-users-gear" />
+                <span>Usuarios</span>
+              </Link>
+            </li>
+          )}
         </ul>
 
-        {/* User Section (Optional - commented out for now) */}
-        {/*
-        <div style={{ marginTop: 'auto', padding: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        {/* User Section */}
+        <div style={{ padding: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)', marginTop: '1rem' }}>
           <div className="d-flex align-items-center text-white">
             <div style={{
               width: '40px',
@@ -343,18 +371,44 @@ const Sidebar = ({ collapsed, onToggleCollapse }: SidebarProps) => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginRight: '0.75rem',
-              fontWeight: 600
+              marginRight: collapsed ? '0' : '0.75rem',
+              fontWeight: 600,
+              flexShrink: 0
             }}>
-              U
+              {usuario?.nombreCompleto?.charAt(0).toUpperCase() || 'U'}
             </div>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Usuario</div>
-              <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>Administrador</div>
-            </div>
+            {!collapsed && (
+              <>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {usuario?.nombreCompleto || 'Usuario'}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+                    {usuario?.rol === 'admin' ? 'Administrador' : 'Usuario'}
+                  </div>
+                </div>
+                <button
+                  onClick={() => { logout(); navigate('/login'); }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'rgba(255, 255, 255, 0.6)',
+                    cursor: 'pointer',
+                    padding: '0.5rem',
+                    borderRadius: '8px',
+                    transition: 'all 0.2s ease',
+                    flexShrink: 0
+                  }}
+                  title="Cerrar sesión"
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)'}
+                >
+                  <Icon name="fa-solid fa-right-from-bracket" />
+                </button>
+              </>
+            )}
           </div>
         </div>
-        */}
       </aside>
     </>
   );
