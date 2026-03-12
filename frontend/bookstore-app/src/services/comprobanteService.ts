@@ -1,9 +1,7 @@
-import api from './api';
+import api, { openAuthenticatedPdf } from './api';
 import type { Comprobante, CreateComprobanteDto, UpdateComprobanteDto, ArticulosVendidosZonaReporte } from '../types/comprobante';
 import type { IvaVenta } from '../types/dashboard';
 import type { DeudoresReporte } from '../types/deudores';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5184/api';
 
 export interface ComprobanteFilters {
   zonaId?: number;
@@ -60,22 +58,19 @@ export const comprobanteService = {
     await api.post(`/comprobantes/${id}/cancelar-deuda`);
   },
 
-  openPdf: (id: number): void => {
-    const pdfUrl = `${API_BASE_URL}/comprobantes/${id}/pdf`;
-    window.open(pdfUrl, '_blank');
+  openPdf: async (id: number): Promise<void> => {
+    await openAuthenticatedPdf(`/comprobantes/${id}/pdf`);
   },
 
-  openCuponesPdf: (id: number): void => {
-    const pdfUrl = `${API_BASE_URL}/comprobantes/${id}/cupones-pdf`;
-    window.open(pdfUrl, '_blank');
+  openCuponesPdf: async (id: number): Promise<void> => {
+    await openAuthenticatedPdf(`/comprobantes/${id}/cupones-pdf`);
   },
 
-  openCompletoPdf: (id: number): void => {
-    const pdfUrl = `${API_BASE_URL}/comprobantes/${id}/completo-pdf`;
-    window.open(pdfUrl, '_blank');
+  openCompletoPdf: async (id: number): Promise<void> => {
+    await openAuthenticatedPdf(`/comprobantes/${id}/completo-pdf`);
   },
 
-  openBatchPdf: (filters: ComprobanteFilters): void => {
+  openBatchPdf: async (filters: ComprobanteFilters): Promise<void> => {
     const params = new URLSearchParams();
     if (filters.zonaId) params.append('zonaId', filters.zonaId.toString());
     if (filters.clienteId) params.append('clienteId', filters.clienteId.toString());
@@ -85,11 +80,10 @@ export const comprobanteService = {
     if (filters.vendedorId) params.append('vendedorId', filters.vendedorId.toString());
     if (filters.comprobante) params.append('comprobante', filters.comprobante);
 
-    const pdfUrl = `${API_BASE_URL}/comprobantes/batch-pdf?${params.toString()}`;
-    window.open(pdfUrl, '_blank');
+    await openAuthenticatedPdf(`/comprobantes/batch-pdf?${params.toString()}`);
   },
 
-  openBatchCuponesPdf: (filters: ComprobanteFilters): void => {
+  openBatchCuponesPdf: async (filters: ComprobanteFilters): Promise<void> => {
     const params = new URLSearchParams();
     if (filters.zonaId) params.append('zonaId', filters.zonaId.toString());
     if (filters.clienteId) params.append('clienteId', filters.clienteId.toString());
@@ -99,8 +93,7 @@ export const comprobanteService = {
     if (filters.vendedorId) params.append('vendedorId', filters.vendedorId.toString());
     if (filters.comprobante) params.append('comprobante', filters.comprobante);
 
-    const pdfUrl = `${API_BASE_URL}/comprobantes/batch-cupones-pdf?${params.toString()}`;
-    window.open(pdfUrl, '_blank');
+    await openAuthenticatedPdf(`/comprobantes/batch-cupones-pdf?${params.toString()}`);
   },
 
   getUltimoGastoEnvio: async (): Promise<number> => {
@@ -113,9 +106,8 @@ export const comprobanteService = {
     return response.data;
   },
 
-  openIvaVentasPdf: (fechaDesde: string, fechaHasta: string): void => {
-    const pdfUrl = `${API_BASE_URL}/comprobantes/iva-ventas-pdf?fechaDesde=${fechaDesde}&fechaHasta=${fechaHasta}`;
-    window.open(pdfUrl, '_blank');
+  openIvaVentasPdf: async (fechaDesde: string, fechaHasta: string): Promise<void> => {
+    await openAuthenticatedPdf(`/comprobantes/iva-ventas-pdf?fechaDesde=${fechaDesde}&fechaHasta=${fechaHasta}`);
   },
 
   getDeudores: async (mes: number, anio: number, zonaId?: number, vendedorId?: number): Promise<DeudoresReporte> => {
@@ -129,13 +121,13 @@ export const comprobanteService = {
     return response.data;
   },
 
-  openDeudoresPdf: (mes: number, anio: number, zonaId?: number, vendedorId?: number): void => {
+  openDeudoresPdf: async (mes: number, anio: number, zonaId?: number, vendedorId?: number): Promise<void> => {
     const params = new URLSearchParams();
     params.append('mes', mes.toString());
     params.append('anio', anio.toString());
     if (zonaId) params.append('zonaId', zonaId.toString());
     if (vendedorId) params.append('vendedorId', vendedorId.toString());
-    window.open(`${API_BASE_URL}/comprobantes/deudores-pdf?${params.toString()}`, '_blank');
+    await openAuthenticatedPdf(`/comprobantes/deudores-pdf?${params.toString()}`);
   },
 
   getArticulosVendidosZona: async (zonaId?: number): Promise<ArticulosVendidosZonaReporte> => {
@@ -148,14 +140,14 @@ export const comprobanteService = {
     return response.data;
   },
 
-  openArticulosVendidosZonaPdf: (zonaId?: number): void => {
+  openArticulosVendidosZonaPdf: async (zonaId?: number): Promise<void> => {
     const params = new URLSearchParams();
     if (zonaId) params.append('zonaId', zonaId.toString());
 
     const queryString = params.toString();
-    const pdfUrl = queryString
-      ? `${API_BASE_URL}/comprobantes/articulos-vendidos-zona-pdf?${queryString}`
-      : `${API_BASE_URL}/comprobantes/articulos-vendidos-zona-pdf`;
-    window.open(pdfUrl, '_blank');
+    const url = queryString
+      ? `/comprobantes/articulos-vendidos-zona-pdf?${queryString}`
+      : `/comprobantes/articulos-vendidos-zona-pdf`;
+    await openAuthenticatedPdf(url);
   },
 };

@@ -32,4 +32,12 @@ api.interceptors.response.use(
   }
 );
 
+export const openAuthenticatedPdf = async (url: string): Promise<void> => {
+  const response = await api.get(url, { responseType: 'blob' });
+  const blob = new Blob([response.data], { type: 'application/pdf' });
+  const blobUrl = URL.createObjectURL(blob);
+  window.open(blobUrl, '_blank');
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+};
+
 export default api;

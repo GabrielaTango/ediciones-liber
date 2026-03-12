@@ -1,7 +1,5 @@
-import api from './api';
+import api, { openAuthenticatedPdf } from './api';
 import type { Gasto, CreateGastoDto, UpdateGastoDto } from '../types/gasto';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5184/api';
 
 export const gastoService = {
   getAll: async (): Promise<Gasto[]> => {
@@ -38,8 +36,7 @@ export const gastoService = {
     return response.data;
   },
 
-  openListadoPdf: (fechaDesde: string, fechaHasta: string): void => {
-    const pdfUrl = `${API_BASE_URL}/gastos/listado-pdf?fechaDesde=${fechaDesde}&fechaHasta=${fechaHasta}`;
-    window.open(pdfUrl, '_blank');
+  openListadoPdf: async (fechaDesde: string, fechaHasta: string): Promise<void> => {
+    await openAuthenticatedPdf(`/gastos/listado-pdf?fechaDesde=${fechaDesde}&fechaHasta=${fechaHasta}`);
   },
 };

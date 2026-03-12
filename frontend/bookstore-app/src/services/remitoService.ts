@@ -1,7 +1,5 @@
-import api from './api';
+import api, { openAuthenticatedPdf } from './api';
 import type { Remito, CreateRemitoDto, UpdateRemitoDto } from '../types/remito';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5184/api';
 
 export const remitoService = {
   getAll: async (): Promise<Remito[]> => {
@@ -28,15 +26,15 @@ export const remitoService = {
     await api.delete(`/remitos/${id}`);
   },
 
-  openPdf: (id: number): void => {
-    window.open(`${API_BASE_URL}/remitos/${id}/pdf`, '_blank');
+  openPdf: async (id: number): Promise<void> => {
+    await openAuthenticatedPdf(`/remitos/${id}/pdf`);
   },
 
-  openEtiquetasPdf: (id: number): void => {
-    window.open(`${API_BASE_URL}/remitos/${id}/etiquetas-pdf`, '_blank');
+  openEtiquetasPdf: async (id: number): Promise<void> => {
+    await openAuthenticatedPdf(`/remitos/${id}/etiquetas-pdf`);
   },
 
-  openCompletoPdf: (id: number): void => {
-    window.open(`${API_BASE_URL}/remitos/${id}/completo-pdf`, '_blank');
+  openCompletoPdf: async (id: number): Promise<void> => {
+    await openAuthenticatedPdf(`/remitos/${id}/completo-pdf`);
   },
 };

@@ -1,7 +1,5 @@
-import api from './api';
+import api, { openAuthenticatedPdf } from './api';
 import type { ComprobanteProveedor, ComprobanteProveedorDetail, CreateComprobanteProveedorDto, IvaCompra } from '../types/comprobanteProveedor';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5184/api';
 
 export const comprobanteProveedorService = {
   getAll: async (): Promise<ComprobanteProveedor[]> => {
@@ -30,8 +28,7 @@ export const comprobanteProveedorService = {
     return response.data;
   },
 
-  openIvaComprasPdf: (fechaDesde: string, fechaHasta: string): void => {
-    const pdfUrl = `${API_BASE_URL}/comprobantesproveedores/iva-compras-pdf?fechaDesde=${fechaDesde}&fechaHasta=${fechaHasta}`;
-    window.open(pdfUrl, '_blank');
+  openIvaComprasPdf: async (fechaDesde: string, fechaHasta: string): Promise<void> => {
+    await openAuthenticatedPdf(`/comprobantesproveedores/iva-compras-pdf?fechaDesde=${fechaDesde}&fechaHasta=${fechaHasta}`);
   },
 };
