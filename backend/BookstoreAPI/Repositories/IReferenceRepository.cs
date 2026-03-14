@@ -13,6 +13,7 @@ namespace BookstoreAPI.Repositories
 
         // SubZona
         Task<IEnumerable<SubZona>> GetAllSubZonasAsync();
+        Task<IEnumerable<SubZona>> GetSubZonasByZonaIdAsync(int zonaId);
         Task<SubZona?> GetSubZonaByIdAsync(int id);
         Task<SubZona> CreateSubZonaAsync(SubZona subZona);
         Task<SubZona?> UpdateSubZonaAsync(int id, SubZona subZona);

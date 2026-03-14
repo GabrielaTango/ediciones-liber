@@ -53,6 +53,11 @@ namespace BookstoreAPI.Services
             return await _referenceRepository.GetAllSubZonasAsync();
         }
 
+        public async Task<IEnumerable<SubZona>> GetSubZonasByZonaIdAsync(int zonaId)
+        {
+            return await _referenceRepository.GetSubZonasByZonaIdAsync(zonaId);
+        }
+
         public async Task<SubZona?> GetSubZonaByIdAsync(int id)
         {
             return await _referenceRepository.GetSubZonaByIdAsync(id);
@@ -63,6 +68,7 @@ namespace BookstoreAPI.Services
             var subZona = new SubZona
             {
                 Descripcion = dto.Descripcion,
+                ZonaId = dto.ZonaId,
                 ProvinciaId = dto.ProvinciaId,
                 CodigoPostal = dto.CodigoPostal,
                 Localidad = dto.Localidad
@@ -75,6 +81,7 @@ namespace BookstoreAPI.Services
             var subZona = new SubZona
             {
                 Descripcion = dto.Descripcion,
+                ZonaId = dto.ZonaId,
                 ProvinciaId = dto.ProvinciaId,
                 CodigoPostal = dto.CodigoPostal,
                 Localidad = dto.Localidad

@@ -14,7 +14,6 @@ const ArticuloFormPage = () => {
   const isEditMode = !!id;
 
   const [formData, setFormData] = useState<CreateArticuloDto | UpdateArticuloDto>({
-    codigo: '',
     descripcion: '',
     codBarras: '',
     observaciones: '',
@@ -37,7 +36,6 @@ const ArticuloFormPage = () => {
       setLoading(true);
       const articulo = await articuloService.getById(articuloId);
       setFormData({
-        codigo: articulo.codigo || '',
         descripcion: articulo.descripcion || '',
         codBarras: articulo.codBarras || '',
         observaciones: articulo.observaciones || '',
@@ -125,20 +123,6 @@ const ArticuloFormPage = () => {
         <GradientCard title="Información del Artículo" icon="fa-solid fa-box">
           <div className="row">
             <div className="col-md-6">
-              <FormGroup label="Código">
-                <input
-                  type="text"
-                  className="form-control"
-                  name="codigo"
-                  value={formData.codigo}
-                  onChange={handleChange}
-                  placeholder="Código del artículo"
-                  maxLength={25}
-                />
-              </FormGroup>
-            </div>
-
-            <div className="col-md-6">
               <FormGroup label="Descripción" required>
                 <input
                   type="text"
@@ -171,14 +155,14 @@ const ArticuloFormPage = () => {
             </div>
 
             <div className="col-md-6">
-              <FormGroup label="Tema">
+              <FormGroup label="Editorial">
                 <input
                   type="text"
                   className="form-control"
                   name="tema"
                   value={formData.tema}
                   onChange={handleChange}
-                  placeholder="Tema o categoría"
+                  placeholder="Editorial"
                   maxLength={50}
                 />
               </FormGroup>

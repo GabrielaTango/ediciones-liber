@@ -15,7 +15,7 @@ import { Icon } from '../components/Icon';
 import type { CreateComprobanteDto, UpdateComprobanteDto, ComprobanteDetalleDto } from '../types/comprobante';
 import type { Cliente } from '../types/cliente';
 import type { Articulo } from '../types/articulo';
-import type { Vendedor } from '../types/references';
+import type { Vendedor, Zona } from '../types/references';
 import IconButton from '../components/IconButton';
 
 interface SelectOption {
@@ -43,6 +43,7 @@ const ComprobanteFormPage = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [articulos, setArticulos] = useState<Articulo[]>([]);
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [zonas, setZonas] = useState<Zona[]>([]);
 
   const [selectedClienteId, setSelectedClienteId] = useState<number | null>(null);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
@@ -140,15 +141,18 @@ const ComprobanteFormPage = () => {
 
   // Opciones para React Select
   const clienteOptions = useMemo<SelectOption[]>(() =>
-    clientes.map(c => ({
-      value: c.id,
-      label: `${c.nombre} - ${c.nroDocumento || 'Sin documento'}`
-    })), [clientes]);
+    clientes.map(c => {
+      const zona = zonas.find(z => z.id === c.zona_Id);
+      return {
+        value: c.id,
+        label: `${c.nombre} - ${zona?.descripcion || 'Sin zona'}`
+      };
+    }), [clientes, zonas]);
 
   const articuloOptions = useMemo<ArticuloOption[]>(() =>
     articulos.map(a => ({
       value: a.id,
-      label: `${a.codigo} - ${a.descripcion} ($${a.precio?.toFixed(2) || '0.00'})`,
+      label: `${a.descripcion} - ${a.tema || 'Sin editorial'}`,
       precio: a.precio || 0
     })), [articulos]);
 
@@ -185,14 +189,16 @@ const ComprobanteFormPage = () => {
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      const [clientesData, articulosData, vendedoresData] = await Promise.all([
+      const [clientesData, articulosData, vendedoresData, zonasData] = await Promise.all([
         clienteService.getAll(),
         articuloService.getAll(),
         referenceService.getVendedores(),
+        referenceService.getZonas(),
       ]);
       setClientes(clientesData);
       setArticulos(articulosData);
       setVendedores(vendedoresData);
+      setZonas(zonasData);
 
       // Cargar último gasto de envío como default solo para comprobantes nuevos
       if (!id) {
@@ -333,7 +339,7 @@ const ComprobanteFormPage = () => {
     const newItem: ItemTemp = {
       tempId: editingItem ? editingItem.tempId : nextTempId,
       articulo_Id: itemForm.articulo_Id,
-      articuloCodigo: articulo?.codigo,
+      articuloCodigo: undefined,
       articuloDescripcion: articulo?.descripcion,
       cantidad: itemForm.cantidad,
       precio_Unitario: itemForm.precio_Unitario,

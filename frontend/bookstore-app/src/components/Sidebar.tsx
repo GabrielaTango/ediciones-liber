@@ -227,12 +227,12 @@ const Sidebar = ({ collapsed, onToggleCollapse }: SidebarProps) => {
           </li>
           <li>
             <Link
-              to="/articulos-vendidos-zona"
-              className={isActive('/articulos-vendidos-zona') ? 'active' : ''}
+              to="/clientes-vendido-zona"
+              className={isActive('/clientes-vendido-zona') ? 'active' : ''}
               onClick={closeMobileMenu}
             >
               <Icon name="fa-solid fa-chart-bar" />
-              <span>Art. x Zona</span>
+              <span>Clientes x Zona</span>
             </Link>
           </li>
           <li>
@@ -288,16 +288,6 @@ const Sidebar = ({ collapsed, onToggleCollapse }: SidebarProps) => {
             >
               <Icon name="fa-solid fa-location-dot" />
               <span>Zonas</span>
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/subzonas"
-              className={isActive('/subzonas') ? 'active' : ''}
-              onClick={closeMobileMenu}
-            >
-              <Icon name="fa-solid fa-map-location-dot" />
-              <span>SubZonas</span>
             </Link>
           </li>
           <li>

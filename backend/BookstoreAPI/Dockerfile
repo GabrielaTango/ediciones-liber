@@ -17,11 +17,12 @@ WORKDIR /app
 # Set timezone to Buenos Aires
 ENV TZ=America/Buenos_Aires
 
-# Install libgdiplus for QuestPDF, openssl and timezone data
+# Install libgdiplus for QuestPDF, openssl, timezone data, and mysql-client for backup/restore
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgdiplus \
     openssl \
     tzdata \
+    default-mysql-client \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     && echo $TZ > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*

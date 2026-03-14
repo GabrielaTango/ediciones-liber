@@ -473,15 +473,17 @@ namespace BookstoreAPI.Repositories
         {
             const string query = @"
                 SELECT
-                    id AS Id,
-                    factura_id AS Factura_Id,
-                    articulo_id AS Articulo_Id,
-                    cantidad AS Cantidad,
-                    precio_unitario AS Precio_Unitario,
-                    subtotal AS Subtotal
-                FROM comprobante_detalle
-                WHERE factura_id = @ComprobanteId
-                ORDER BY id";
+                    cd.id AS Id,
+                    cd.factura_id AS Factura_Id,
+                    cd.articulo_id AS Articulo_Id,
+                    cd.cantidad AS Cantidad,
+                    cd.precio_unitario AS Precio_Unitario,
+                    cd.subtotal AS Subtotal,
+                    a.Descripcion AS ArticuloDescripcion
+                FROM comprobante_detalle cd
+                LEFT JOIN articulos a ON cd.articulo_id = a.id
+                WHERE cd.factura_id = @ComprobanteId
+                ORDER BY cd.id";
 
             using var connection = _context.CreateConnection();
             var detalles = await connection.QueryAsync<ComprobanteDetalle>(query, new { ComprobanteId = comprobanteId });

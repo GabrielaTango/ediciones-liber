@@ -1,4 +1,29 @@
 services:
+  db:
+    image: mysql:8.0
+    container_name: bookstore-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=Root@4865!
+      - MYSQL_DATABASE=BookstoreApp
+      - MYSQL_USER=bookstore
+      - MYSQL_PASSWORD=1234!
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - mysql_backup:/backup
+      - ./Database/db.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./Database/02-seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    ports:
+      - "3307:3306"
+    networks:
+      - bookstore-network
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
   backend:
     build:
       context: ./backend/BookstoreAPI
@@ -8,10 +33,13 @@ services:
       - "5000:5000"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=server=179.43.121.202;database=BookstoreApp;user=bookstore;password=1234!;
+      - ConnectionStrings__DefaultConnection=server=db;database=BookstoreApp;user=bookstore;password=1234!;
     volumes:
       - ./Certificates:/app/Certificates:ro
       - ./backend/BookstoreAPI/Images:/app/Images:ro
+      - mysql_backup:/backup
+    depends_on:
+      - db
     networks:
       - bookstore-network
     restart: unless-stopped
@@ -28,8 +56,8 @@ services:
       args:
         - VITE_API_URL=/api
     container_name: bookstore-frontend
-    ports:
-      - "8081:80"
+    expose:
+      - "80"
     depends_on:
       - backend
     networks:
@@ -40,6 +68,49 @@ services:
       options:
         max-size: "50m"
         max-file: "3"
+
+  nginx:
+    image: nginx:alpine
+    container_name: bookstore-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot_webroot:/var/www/certbot:ro
+      - certbot_certs:/etc/letsencrypt:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - bookstore-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  certbot:
+    image: certbot/certbot
+    container_name: bookstore-certbot
+    volumes:
+      - certbot_webroot:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - bookstore-network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+    driver: local
+  mysql_backup:
+    driver: local
+  certbot_webroot:
+    driver: local
+  certbot_certs:
+    driver: local
 
 networks:
   bookstore-network:

@@ -164,11 +164,13 @@ namespace BookstoreAPI.Controllers
 
         // ===== BACKUP / RESTORE =====
 
+        private const string DefaultBackupPath = "/backup";
+
         [HttpGet("backup-path")]
         public async Task<IActionResult> GetBackupPath()
         {
             var ruta = await _repo.GetValueAsync("Backup_RutaCarpeta");
-            return Ok(new { ruta = ruta ?? "" });
+            return Ok(new { ruta = ruta ?? DefaultBackupPath });
         }
 
         [HttpPut("backup-path")]
@@ -182,7 +184,9 @@ namespace BookstoreAPI.Controllers
         public async Task<IActionResult> ListarArchivosBackup()
         {
             var ruta = await _repo.GetValueAsync("Backup_RutaCarpeta");
-            if (string.IsNullOrEmpty(ruta) || !Directory.Exists(ruta))
+            if (string.IsNullOrEmpty(ruta))
+                ruta = DefaultBackupPath;
+            if (!Directory.Exists(ruta))
                 return Ok(Array.Empty<string>());
 
             var archivos = Directory.GetFiles(ruta, "*.sql")
@@ -200,7 +204,7 @@ namespace BookstoreAPI.Controllers
             {
                 var ruta = await _repo.GetValueAsync("Backup_RutaCarpeta");
                 if (string.IsNullOrEmpty(ruta))
-                    return BadRequest(new { message = "No se configuró la ruta de backup" });
+                    ruta = DefaultBackupPath;
 
                 if (!Directory.Exists(ruta))
                     Directory.CreateDirectory(ruta);
@@ -256,7 +260,7 @@ namespace BookstoreAPI.Controllers
             {
                 var ruta = await _repo.GetValueAsync("Backup_RutaCarpeta");
                 if (string.IsNullOrEmpty(ruta))
-                    return BadRequest(new { message = "No se configuró la ruta de backup" });
+                    ruta = DefaultBackupPath;
 
                 var filePath = Path.Combine(ruta, dto.Archivo);
                 if (!System.IO.File.Exists(filePath))

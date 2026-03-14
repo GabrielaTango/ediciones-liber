@@ -76,7 +76,6 @@ const ClientesPage = () => {
                     <th>Nombre</th>
                     <th>Documento</th>
                     <th>Teléfono</th>
-                    <th>Email</th>
                     <th>Categoría IVA</th>
                     <th>Descuento</th>
                     <th>Acciones</th>
@@ -89,7 +88,6 @@ const ClientesPage = () => {
                       <td>{cliente.nombre}</td>
                       <td>{cliente.nroDocumento || '-'}</td>
                       <td>{cliente.telefono || cliente.telefonoMovil || '-'}</td>
-                      <td>{cliente.eMail || '-'}</td>
                       <td>{cliente.categoriaIva || '-'}</td>
                       <td>{cliente.descuento}%</td>
                       <td>

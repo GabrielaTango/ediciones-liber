@@ -72,10 +72,9 @@ const ArticulosPage = () => {
               <table className="custom-table">
                 <thead>
                   <tr>
-                    <th>Código</th>
                     <th>Descripción</th>
                     <th>Código de Barras</th>
-                    <th>Tema</th>
+                    <th>Editorial</th>
                     <th>Tomos</th>
                     <th>Precio</th>
                     <th>Acciones</th>
@@ -84,7 +83,6 @@ const ArticulosPage = () => {
                 <tbody>
                   {articulos.map((articulo) => (
                     <tr key={articulo.id}>
-                      <td>{articulo.codigo || '-'}</td>
                       <td>{articulo.descripcion || '-'}</td>
                       <td>{articulo.codBarras || '-'}</td>
                       <td>{articulo.tema || '-'}</td>

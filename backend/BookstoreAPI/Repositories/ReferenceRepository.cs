@@ -73,7 +73,7 @@ namespace BookstoreAPI.Repositories
         public async Task<IEnumerable<SubZona>> GetAllSubZonasAsync()
         {
             const string query = @"
-                SELECT s.id AS Id, s.descripcion AS Descripcion,
+                SELECT s.id AS Id, s.descripcion AS Descripcion, s.zona_id AS ZonaId,
                        s.provincia_id AS ProvinciaId, s.codigo_postal AS CodigoPostal, s.localidad AS Localidad,
                        p.descripcion AS ProvinciaDescripcion
                 FROM subzonas s
@@ -83,10 +83,24 @@ namespace BookstoreAPI.Repositories
             return await connection.QueryAsync<SubZona>(query);
         }
 
+        public async Task<IEnumerable<SubZona>> GetSubZonasByZonaIdAsync(int zonaId)
+        {
+            const string query = @"
+                SELECT s.id AS Id, s.descripcion AS Descripcion, s.zona_id AS ZonaId,
+                       s.provincia_id AS ProvinciaId, s.codigo_postal AS CodigoPostal, s.localidad AS Localidad,
+                       p.descripcion AS ProvinciaDescripcion
+                FROM subzonas s
+                LEFT JOIN provincias p ON s.provincia_id = p.id
+                WHERE s.zona_id = @ZonaId
+                ORDER BY s.descripcion";
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<SubZona>(query, new { ZonaId = zonaId });
+        }
+
         public async Task<SubZona?> GetSubZonaByIdAsync(int id)
         {
             const string query = @"
-                SELECT s.id AS Id, s.descripcion AS Descripcion,
+                SELECT s.id AS Id, s.descripcion AS Descripcion, s.zona_id AS ZonaId,
                        s.provincia_id AS ProvinciaId, s.codigo_postal AS CodigoPostal, s.localidad AS Localidad,
                        p.descripcion AS ProvinciaDescripcion
                 FROM subzonas s
@@ -100,8 +114,8 @@ namespace BookstoreAPI.Repositories
         {
             const string checkQuery = "SELECT COUNT(*) FROM subzonas WHERE LOWER(descripcion) = LOWER(@Descripcion)";
             const string query = @"
-                INSERT INTO subzonas (descripcion, provincia_id, codigo_postal, localidad)
-                VALUES (@Descripcion, @ProvinciaId, @CodigoPostal, @Localidad);
+                INSERT INTO subzonas (descripcion, zona_id, provincia_id, codigo_postal, localidad)
+                VALUES (@Descripcion, @ZonaId, @ProvinciaId, @CodigoPostal, @Localidad);
                 SELECT LAST_INSERT_ID();";
             using var connection = _context.CreateConnection();
             var exists = await connection.ExecuteScalarAsync<int>(checkQuery, new { subZona.Descripcion });
@@ -117,7 +131,7 @@ namespace BookstoreAPI.Repositories
             const string checkQuery = "SELECT COUNT(*) FROM subzonas WHERE LOWER(descripcion) = LOWER(@Descripcion) AND id != @Id";
             const string query = @"
                 UPDATE subzonas
-                SET descripcion = @Descripcion,
+                SET descripcion = @Descripcion, zona_id = @ZonaId,
                     provincia_id = @ProvinciaId, codigo_postal = @CodigoPostal, localidad = @Localidad
                 WHERE id = @Id";
             using var connection = _context.CreateConnection();
@@ -127,6 +141,7 @@ namespace BookstoreAPI.Repositories
             var affectedRows = await connection.ExecuteAsync(query, new {
                 Id = id,
                 subZona.Descripcion,
+                subZona.ZonaId,
                 subZona.ProvinciaId,
                 subZona.CodigoPostal,
                 subZona.Localidad

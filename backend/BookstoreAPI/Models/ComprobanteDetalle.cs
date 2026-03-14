@@ -8,5 +8,6 @@ namespace BookstoreAPI.Models
         public int Cantidad { get; set; }
         public decimal Precio_Unitario { get; set; }
         public decimal Subtotal { get; set; }
+        public string? ArticuloDescripcion { get; set; }
     }
 }

@@ -1,6 +1,5 @@
 export interface Articulo {
   id: number;
-  codigo?: string;
   descripcion?: string;
   codBarras?: string;
   observaciones?: string;
@@ -10,7 +9,6 @@ export interface Articulo {
 }
 
 export interface CreateArticuloDto {
-  codigo?: string;
   descripcion: string;
   codBarras?: string;
   observaciones?: string;
@@ -20,7 +18,6 @@ export interface CreateArticuloDto {
 }
 
 export interface UpdateArticuloDto {
-  codigo?: string;
   descripcion: string;
   codBarras?: string;
   observaciones?: string;

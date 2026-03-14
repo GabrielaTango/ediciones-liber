@@ -8,7 +8,8 @@ import ClienteFormPage from './pages/ClienteFormPage';
 import ArticulosPage from './pages/ArticulosPage';
 import ArticuloFormPage from './pages/ArticuloFormPage';
 import ZonasPage from './pages/ZonasPage';
-import SubZonasPage from './pages/SubZonasPage';
+import ZonaFormPage from './pages/ZonaFormPage';
+
 import ProvinciasPage from './pages/ProvinciasPage';
 import VendedoresPage from './pages/VendedoresPage';
 import TransportesPage from './pages/TransportesPage';
@@ -62,13 +63,13 @@ function App() {
         <Route path="iva-ventas" element={<IvaVentasPage />} />
         <Route path="deudores" element={<DeudoresPage />} />
         <Route path="cuotas" element={<CuotasPage />} />
-        <Route path="articulos-vendidos-zona" element={<ArticulosVendidosZonaPage />} />
+        <Route path="clientes-vendido-zona" element={<ArticulosVendidosZonaPage />} />
         <Route path="gastos" element={<GastosPage />} />
         <Route path="gastos/nuevo" element={<GastoFormPage />} />
         <Route path="gastos/editar/:id" element={<GastoFormPage />} />
         <Route path="categorias-gasto" element={<CategoriasGastoPage />} />
         <Route path="zonas" element={<ZonasPage />} />
-        <Route path="subzonas" element={<SubZonasPage />} />
+        <Route path="zonas/:id" element={<ZonaFormPage />} />
         <Route path="provincias" element={<ProvinciasPage />} />
         <Route path="vendedores" element={<VendedoresPage />} />
         <Route path="proveedores" element={<ProveedoresPage />} />

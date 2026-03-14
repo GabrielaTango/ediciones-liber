@@ -163,12 +163,15 @@ CREATE TABLE IF NOT EXISTS `subzonas` (
   `id` int NOT NULL AUTO_INCREMENT,
   `codigo` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `descripcion` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `zona_id` int DEFAULT NULL,
   `provincia_id` int NOT NULL,
   `codigo_postal` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `localidad` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   KEY `FK_subzonas_provincias` (`provincia_id`),
-  CONSTRAINT `FK_subzonas_provincias` FOREIGN KEY (`provincia_id`) REFERENCES `provincias` (`id`)
+  KEY `FK_subzonas_zonas` (`zona_id`),
+  CONSTRAINT `FK_subzonas_provincias` FOREIGN KEY (`provincia_id`) REFERENCES `provincias` (`id`),
+  CONSTRAINT `FK_subzonas_zonas` FOREIGN KEY (`zona_id`) REFERENCES `zonas` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC;
 
 CREATE TABLE IF NOT EXISTS `transportes` (
@@ -281,6 +284,29 @@ CREATE TABLE IF NOT EXISTS `pagos_cuotas_proveedores` (
   PRIMARY KEY (`Id`),
   KEY `FK_pagos_cuotas_prov` (`CuotaProveedor_Id`),
   CONSTRAINT `FK_pagos_cuotas_prov` FOREIGN KEY (`CuotaProveedor_Id`) REFERENCES `cuotas_proveedores` (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `configuracion` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `Clave` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `Valor` text COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `ValorBinario` longblob DEFAULT NULL,
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY `UK_configuracion_clave` (`Clave`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `usuarios` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `Username` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `PasswordHash` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `NombreCompleto` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `Email` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `Rol` varchar(20) COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'usuario',
+  `Activo` tinyint(1) NOT NULL DEFAULT 1,
+  `FechaCreacion` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `UltimoAcceso` datetime DEFAULT NULL,
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY `UK_usuarios_username` (`Username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;

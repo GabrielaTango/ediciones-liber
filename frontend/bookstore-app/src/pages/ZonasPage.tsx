@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { referenceService } from '../services/referenceService';
 import type { Zona, CreateZonaDto, UpdateZonaDto } from '../types/references';
 import { PageHeader } from '../components/PageHeader';
@@ -18,6 +19,7 @@ const ZonasPage = () => {
       (z.descripcion?.toLowerCase() || '').includes(busqueda)
     );
   }, [zonas, filtro]);
+
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [zonaToDelete, setZonaToDelete] = useState<Zona | null>(null);
@@ -52,9 +54,7 @@ const ZonasPage = () => {
 
   const handleEdit = (zona: Zona) => {
     setEditingZona(zona);
-    setFormData({
-      descripcion: zona.descripcion || '',
-    });
+    setFormData({ descripcion: zona.descripcion || '' });
     setShowModal(true);
   };
 
@@ -66,12 +66,10 @@ const ZonasPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
     if (!formData.descripcion.trim()) {
       setError('La descripción es obligatoria');
       return;
     }
-
     try {
       setLoading(true);
       if (editingZona) {
@@ -83,7 +81,6 @@ const ZonasPage = () => {
       await loadZonas();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al guardar la zona');
-      console.error('Error saving zona:', err);
     } finally {
       setLoading(false);
     }
@@ -91,7 +88,6 @@ const ZonasPage = () => {
 
   const handleDeleteConfirm = async () => {
     if (!zonaToDelete) return;
-
     try {
       await referenceService.deleteZona(zonaToDelete.id);
       setZonas(zonas.filter((z) => z.id !== zonaToDelete.id));
@@ -99,7 +95,6 @@ const ZonasPage = () => {
       setZonaToDelete(null);
     } catch (err) {
       setError('Error al eliminar la zona');
-      console.error('Error deleting zona:', err);
     }
   };
 
@@ -122,7 +117,6 @@ const ZonasPage = () => {
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      {/* Filtro */}
       <div className="card mb-3">
         <div className="card-body py-2">
           <div className="row">
@@ -157,20 +151,17 @@ const ZonasPage = () => {
                 <tbody>
                   {zonasFiltradas.map((zona) => (
                     <tr key={zona.id}>
-                      <td>{zona.descripcion || '-'}</td>
                       <td>
-                        <IconButton
-                          icon="fa-solid fa-pen"
-                          title="Editar"
-                          variant="primary"
-                          onClick={() => handleEdit(zona)}
-                        />
-                        <IconButton
-                          icon="fa-solid fa-trash"
-                          title="Eliminar"
-                          variant="danger"
-                          onClick={() => handleDeleteClick(zona)}
-                        />
+                        <Link to={`/zonas/${zona.id}`} className="text-decoration-none">
+                          {zona.descripcion || '-'}
+                        </Link>
+                      </td>
+                      <td>
+                        <Link to={`/zonas/${zona.id}`}>
+                          <IconButton icon="fa-solid fa-map-location-dot" title="SubZonas" variant="info" />
+                        </Link>
+                        <IconButton icon="fa-solid fa-pen" title="Editar" variant="primary" onClick={() => handleEdit(zona)} />
+                        <IconButton icon="fa-solid fa-trash" title="Eliminar" variant="danger" onClick={() => handleDeleteClick(zona)} />
                       </td>
                     </tr>
                   ))}
@@ -181,51 +172,24 @@ const ZonasPage = () => {
         </div>
       )}
 
-      {/* Modal para crear/editar */}
       {showModal && (
         <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">
-                  {editingZona ? 'Editar Zona' : 'Nueva Zona'}
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowModal(false)}
-                  aria-label="Close"
-                ></button>
+                <h5 className="modal-title">{editingZona ? 'Editar Zona' : 'Nueva Zona'}</h5>
+                <button type="button" className="btn-close" onClick={() => setShowModal(false)} aria-label="Close"></button>
               </div>
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
                   <div className="mb-3">
-                    <label className="form-label">
-                      Nombre <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="descripcion"
-                      value={formData.descripcion}
-                      onChange={handleChange}
-                      placeholder="Nombre de la zona"
-                      maxLength={100}
-                      required
-                    />
+                    <label className="form-label">Nombre <span className="text-danger">*</span></label>
+                    <input type="text" className="form-control" name="descripcion" value={formData.descripcion} onChange={handleChange} placeholder="Nombre de la zona" maxLength={100} required />
                   </div>
                 </div>
                 <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => setShowModal(false)}
-                  >
-                    Cancelar
-                  </button>
-                  <button type="submit" className="btn btn-primary" disabled={loading}>
-                    {loading ? 'Guardando...' : 'Guardar'}
-                  </button>
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
+                  <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Guardando...' : 'Guardar'}</button>
                 </div>
               </form>
             </div>
@@ -233,39 +197,20 @@ const ZonasPage = () => {
         </div>
       )}
 
-      {/* Modal para eliminar */}
       {showDeleteModal && (
         <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Confirmar Eliminación</h5>
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowDeleteModal(false)}
-                  aria-label="Close"
-                ></button>
+                <button type="button" className="btn-close" onClick={() => setShowDeleteModal(false)} aria-label="Close"></button>
               </div>
               <div className="modal-body">
-                ¿Está seguro de que desea eliminar la zona{' '}
-                <strong>{zonaToDelete?.descripcion}</strong>?
+                ¿Está seguro de que desea eliminar la zona <strong>{zonaToDelete?.descripcion}</strong>?
               </div>
               <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowDeleteModal(false)}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger"
-                  onClick={handleDeleteConfirm}
-                >
-                  Eliminar
-                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>Cancelar</button>
+                <button type="button" className="btn btn-danger" onClick={handleDeleteConfirm}>Eliminar</button>
               </div>
             </div>
           </div>

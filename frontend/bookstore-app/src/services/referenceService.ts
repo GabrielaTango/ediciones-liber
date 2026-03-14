@@ -40,6 +40,11 @@ export const referenceService = {
     return response.data;
   },
 
+  getSubZonasByZona: async (zonaId: number): Promise<SubZona[]> => {
+    const response = await api.get<SubZona[]>(`/references/zonas/${zonaId}/subzonas`);
+    return response.data;
+  },
+
   getSubZonaById: async (id: number): Promise<SubZona> => {
     const response = await api.get<SubZona>(`/references/subzonas/${id}`);
     return response.data;

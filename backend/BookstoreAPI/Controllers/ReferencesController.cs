@@ -116,6 +116,21 @@ namespace BookstoreAPI.Controllers
         }
 
         // ===== SUBZONAS =====
+        [HttpGet("zonas/{zonaId}/subzonas")]
+        public async Task<IActionResult> GetSubZonasByZona(int zonaId)
+        {
+            try
+            {
+                var subzonas = await _referenceService.GetSubZonasByZonaIdAsync(zonaId);
+                return Ok(subzonas);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener subzonas por zona");
+                return StatusCode(500, new { message = "Error al obtener subzonas" });
+            }
+        }
+
         [HttpGet("subzonas")]
         public async Task<IActionResult> GetSubZonas()
         {

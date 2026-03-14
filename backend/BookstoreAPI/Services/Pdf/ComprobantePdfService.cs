@@ -172,7 +172,7 @@ namespace BookstoreAPI.Services.Pdf
                     foreach (var detalle in detalles)
                     {
                         table.Cell().Element(CellStyle).Text(detalle.Cantidad.ToString()).FontSize(sizeImporte);
-                        table.Cell().Element(CellStyle).Text($"Artículo ID: {detalle.Articulo_Id}").FontSize(sizeImporte);
+                        table.Cell().Element(CellStyle).Text(detalle.ArticuloDescripcion ?? $"Artículo #{detalle.Articulo_Id}").FontSize(sizeImporte);
                         table.Cell().Element(CellStyle).AlignRight().Text($"${detalle.Precio_Unitario:N2}").FontSize(sizeImporte);
                         table.Cell().Element(CellStyle).AlignRight().Text($"${detalle.Subtotal:N2}").FontSize(sizeImporte);
 
@@ -494,7 +494,7 @@ namespace BookstoreAPI.Services.Pdf
                     });
 
                     // Datos del cliente
-                    c.Item().Text($"Sr/a: {cliente.Nombre}").FontSize(9);
+                    c.Item().Text(TruncateText($"Sr/a: {cliente.Nombre}", 25)).FontSize(9);
 
                     // Mes y año de vencimiento
                     c.Item().Text($"Mes: {cuota.Fecha?.ToString("MM/yyyy") ?? "-"}").FontSize(9);
@@ -506,6 +506,12 @@ namespace BookstoreAPI.Services.Pdf
                     c.Item().AlignRight().PaddingTop(3).Text($"Factura: {comprobante.NumeroComprobante}").FontSize(7);
                 });
             });
+        }
+
+        private static string TruncateText(string text, int maxLength)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+            return text.Length <= maxLength ? text : text.Substring(0, maxLength - 3) + "...";
         }
     }
 }

@@ -161,7 +161,7 @@ namespace BookstoreAPI.Services.Pdf
                     });
 
                     // Datos del cliente
-                    c.Item().Text($"Sr/a: {cliente.Nombre}").FontSize(9);
+                    c.Item().Text(TruncateText($"Sr/a: {cliente.Nombre}", 25)).FontSize(9);
 
                     // Mes y año de vencimiento
                     c.Item().Text($"Mes: {cuota.Fecha?.ToString("MM/yyyy") ?? "-"}").FontSize(9);
@@ -173,6 +173,12 @@ namespace BookstoreAPI.Services.Pdf
                     c.Item().AlignRight().PaddingTop(3).Text($"Factura: {comprobante.NumeroComprobante}").FontSize(7);
                 });
             });
+        }
+
+        private static string TruncateText(string text, int maxLength)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+            return text.Length <= maxLength ? text : text.Substring(0, maxLength - 3) + "...";
         }
     }
 }

@@ -24,7 +24,6 @@ const ClienteFormPage = () => {
     provincia_Id: undefined,
     telefono: '',
     telefonoMovil: '',
-    eMail: '',
     domicilioComercial: '',
     domicilioParticular: '',
     codigoPostal: '',
@@ -57,14 +56,12 @@ const ClienteFormPage = () => {
 
   const loadReferences = async () => {
     try {
-      const [zonasData, subzonasData, provinciasData, vendedoresData] = await Promise.all([
+      const [zonasData, provinciasData, vendedoresData] = await Promise.all([
         referenceService.getZonas(),
-        referenceService.getSubZonas(),
         referenceService.getProvincias(),
         referenceService.getVendedores(),
       ]);
       setZonas(zonasData);
-      setSubzonas(subzonasData);
       setProvincias(provinciasData);
       setVendedores(vendedoresData);
     } catch (err) {
@@ -72,10 +69,23 @@ const ClienteFormPage = () => {
     }
   };
 
+  const loadSubzonasByZona = async (zonaId: number) => {
+    try {
+      const data = await referenceService.getSubZonasByZona(zonaId);
+      setSubzonas(data);
+    } catch (err) {
+      console.error('Error loading subzonas:', err);
+      setSubzonas([]);
+    }
+  };
+
   const loadCliente = async (clienteId: number) => {
     try {
       setLoading(true);
       const cliente = await clienteService.getById(clienteId);
+      if (cliente.zona_Id) {
+        await loadSubzonasByZona(cliente.zona_Id);
+      }
       setFormData({
         codigo: cliente.codigo || '',
         nombre: cliente.nombre,
@@ -85,7 +95,6 @@ const ClienteFormPage = () => {
         provincia_Id: cliente.provincia_Id,
         telefono: cliente.telefono || '',
         telefonoMovil: cliente.telefonoMovil || '',
-        eMail: cliente.eMail || '',
         domicilioComercial: cliente.domicilioComercial || '',
         domicilioParticular: cliente.domicilioParticular || '',
         codigoPostal: cliente.codigoPostal || '',
@@ -111,6 +120,18 @@ const ClienteFormPage = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
+
+    // Si cambia la Zona, cargar subzonas de esa zona y limpiar subzona seleccionada
+    if (name === 'zona_Id') {
+      const zonaId = value ? parseInt(value) : undefined;
+      setFormData((prev) => ({ ...prev, zona_Id: zonaId, subZona_Id: undefined }));
+      if (zonaId) {
+        loadSubzonasByZona(zonaId);
+      } else {
+        setSubzonas([]);
+      }
+      return;
+    }
 
     // Si se selecciona una SubZona, autocompletar Provincia y Código Postal
     if (name === 'subZona_Id' && value) {
@@ -413,18 +434,6 @@ const ClienteFormPage = () => {
               </FormGroup>
             </div>
 
-            <div className="col-md-6">
-              <FormGroup label="Email">
-                <input
-                  type="email"
-                  className="form-control"
-                  name="eMail"
-                  value={formData.eMail}
-                  onChange={handleChange}
-                  placeholder="correo@ejemplo.com"
-                />
-              </FormGroup>
-            </div>
           </div>
         </GradientCard>
 

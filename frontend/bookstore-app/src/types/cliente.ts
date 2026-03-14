@@ -14,7 +14,6 @@ export interface Cliente {
   soloContado: boolean;
   telefono?: string;
   telefonoMovil?: string;
-  eMail?: string;
   contacto?: string;
   tipoDocumento?: string;
   nroDocumento?: string;
@@ -39,7 +38,6 @@ export interface CreateClienteDto {
   soloContado: boolean;
   telefono?: string;
   telefonoMovil?: string;
-  eMail?: string;
   contacto?: string;
   tipoDocumento?: string;
   nroDocumento?: string;
@@ -65,7 +63,6 @@ export interface UpdateClienteDto {
   soloContado: boolean;
   telefono?: string;
   telefonoMovil?: string;
-  eMail?: string;
   contacto?: string;
   tipoDocumento?: string;
   nroDocumento?: string;

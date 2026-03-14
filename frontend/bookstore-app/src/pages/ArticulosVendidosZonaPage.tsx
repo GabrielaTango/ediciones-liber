@@ -33,7 +33,7 @@ const ArticulosVendidosZonaPage = () => {
       const data = await comprobanteService.getArticulosVendidosZona(zonaId || undefined);
       setReporte(data);
     } catch (err) {
-      setError('Error al cargar el reporte de artículos vendidos por zona');
+      setError('Error al cargar el reporte de clientes por zona');
       console.error('Error loading report:', err);
     } finally {
       setLoading(false);
@@ -60,7 +60,7 @@ const ArticulosVendidosZonaPage = () => {
   return (
     <div>
       <PageHeader
-        title="Artículos Vendidos por Zona"
+        title="Clientes x Zona"
         icon="fa-solid fa-chart-bar"
       />
 
@@ -134,7 +134,6 @@ const ArticulosVendidosZonaPage = () => {
                 <thead>
                   <tr>
                     <th style={{ minWidth: '40px' }}>V</th>
-                    <th style={{ minWidth: '80px' }}>Código</th>
                     <th style={{ minWidth: '180px' }}>Razón Social</th>
                     <th style={{ minWidth: '150px' }}>Dirección</th>
                     <th style={{ minWidth: '150px' }}>Dir. Comercial</th>
@@ -146,7 +145,7 @@ const ArticulosVendidosZonaPage = () => {
                 <tbody>
                   {reporte.items.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="text-center py-4">
+                      <td colSpan={7} className="text-center py-4">
                         No se encontraron artículos vendidos en el período
                       </td>
                     </tr>
@@ -167,7 +166,6 @@ const ArticulosVendidosZonaPage = () => {
                           style={altBackground ? { backgroundColor: 'rgba(0,0,0,0.03)' } : {}}
                         >
                           <td className="text-center fw-bold">{item.vendedorInicial}</td>
-                          <td>{item.codigoCliente || '-'}</td>
                           <td>
                             {isNewClient && (
                               <strong>{item.razonSocial}</strong>

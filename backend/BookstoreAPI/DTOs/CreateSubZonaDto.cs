@@ -8,6 +8,8 @@ namespace BookstoreAPI.DTOs
         [MaxLength(100, ErrorMessage = "La descripción no puede exceder los 100 caracteres")]
         public string Descripcion { get; set; } = string.Empty;
 
+        public int? ZonaId { get; set; }
+
         [Required(ErrorMessage = "La provincia es obligatoria")]
         public int ProvinciaId { get; set; }
 
@@ -25,6 +27,8 @@ namespace BookstoreAPI.DTOs
         [Required(ErrorMessage = "La descripción es obligatoria")]
         [MaxLength(100, ErrorMessage = "La descripción no puede exceder los 100 caracteres")]
         public string Descripcion { get; set; } = string.Empty;
+
+        public int? ZonaId { get; set; }
 
         [Required(ErrorMessage = "La provincia es obligatoria")]
         public int ProvinciaId { get; set; }

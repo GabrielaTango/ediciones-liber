@@ -14,6 +14,7 @@ namespace BookstoreAPI.Services
 
         // SubZona
         Task<IEnumerable<SubZona>> GetAllSubZonasAsync();
+        Task<IEnumerable<SubZona>> GetSubZonasByZonaIdAsync(int zonaId);
         Task<SubZona?> GetSubZonaByIdAsync(int id);
         Task<SubZona> CreateSubZonaAsync(CreateSubZonaDto dto);
         Task<SubZona?> UpdateSubZonaAsync(int id, UpdateSubZonaDto dto);

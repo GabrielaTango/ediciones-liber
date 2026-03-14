@@ -15,12 +15,15 @@ namespace BookstoreAPI.Services.Pdf
             {
                 container.Page(page =>
                 {
-                    page.Size(PageSizes.A4.Landscape());
+                    page.Size(PageSizes.A4);
                     page.Margin(20);
                     page.DefaultTextStyle(x => x.FontSize(9));
 
-                    page.Header().Element(GenerarHeader(reporte.ZonaNombre));
-                    page.Content().Element(GenerarDetalle(reporte.Items));
+                    page.Content().Column(col =>
+                    {
+                        col.Item().Element(GenerarHeader(reporte.ZonaNombre));
+                        col.Item().Element(GenerarDetalle(reporte.Items));
+                    });
                 });
             });
 
@@ -43,7 +46,7 @@ namespace BookstoreAPI.Services.Pdf
                         {
                             c.Item().Text("de Roberto Passarelli y Marcos E. Passarelli S.H").FontSize(10).Bold();
                             c.Item().Text("Av. Asamblea 1442 P 7 Dto 20 - CP: C1406HVR - C.A.B.A.").FontSize(8);
-                            c.Item().Text($"C.U.I.T. 30-71417888-8    ARTICULOS VENDIDOS POR ZONA").FontSize(10);
+                            c.Item().Text($"C.U.I.T. 30-71417888-8    CLIENTES X ZONA").FontSize(10);
                             c.Item().Text($"Zona: {zonaNombre} - Período: Últimos 3 años").FontSize(10);
                         });
 
@@ -69,7 +72,6 @@ namespace BookstoreAPI.Services.Pdf
                 table.ColumnsDefinition(columns =>
                 {
                     columns.RelativeColumn(0.5f);  // V (vendedor inicial)
-                    columns.RelativeColumn(1f);    // Código
                     columns.RelativeColumn(2.5f);  // Razón Social
                     columns.RelativeColumn(2f);    // Dirección
                     columns.RelativeColumn(2f);    // Dir. Comercial
@@ -81,7 +83,6 @@ namespace BookstoreAPI.Services.Pdf
                 table.Header(header =>
                 {
                     header.Cell().BorderBottom(1).Padding(3).Text("V").Bold();
-                    header.Cell().BorderBottom(1).Padding(3).Text("Código").Bold();
                     header.Cell().BorderBottom(1).Padding(3).Text("Razón Social").Bold();
                     header.Cell().BorderBottom(1).Padding(3).Text("Dirección").Bold();
                     header.Cell().BorderBottom(1).Padding(3).Text("Dir. Comercial").Bold();
@@ -92,7 +93,7 @@ namespace BookstoreAPI.Services.Pdf
 
                 if (items.Count == 0)
                 {
-                    table.Cell().ColumnSpan(8).Element(CellStyleBody).PaddingTop(10).Text("No se encontró información!");
+                    table.Cell().ColumnSpan(7).Element(CellStyleBody).PaddingTop(10).Text("No se encontró información!");
                 }
 
                 string clienteActual = "";
@@ -117,7 +118,6 @@ namespace BookstoreAPI.Services.Pdf
 
                     // Solo mostrar vendedor, código, razón social y direcciones en el primer registro del cliente
                     table.Cell().Element(cellStyle).Text(esPrimerRegistroCliente ? item.VendedorInicial : "");
-                    table.Cell().Element(cellStyle).Text(esPrimerRegistroCliente ? item.CodigoCliente : "");
                     table.Cell().Element(cellStyle).Text(esPrimerRegistroCliente ? TruncateText(item.RazonSocial, 35) : "");
                     table.Cell().Element(cellStyle).Text(esPrimerRegistroCliente ? TruncateText(item.Direccion, 30) : "");
                     table.Cell().Element(cellStyle).Text(esPrimerRegistroCliente ? TruncateText(item.DireccionComercial, 30) : "");
@@ -127,7 +127,7 @@ namespace BookstoreAPI.Services.Pdf
                 }
 
                 // Total de registros
-                table.Cell().ColumnSpan(8).BorderTop(2).Padding(5).Text($"Total de registros: {items.Count}").Bold();
+                table.Cell().ColumnSpan(7).BorderTop(2).Padding(5).Text($"Total de registros: {items.Count}").Bold();
             });
         };
 

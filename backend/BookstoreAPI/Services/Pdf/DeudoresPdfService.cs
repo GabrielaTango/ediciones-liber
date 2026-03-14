@@ -120,7 +120,7 @@ namespace BookstoreAPI.Services.Pdf
                     table.Cell().Element(cellStyle).Text(TruncateText(deudor.RazonSocial, 40));
                     table.Cell().Element(cellStyle).Text(deudor.CodigoVendedor ?? "-");
                     table.Cell().Element(cellStyle).AlignCenter().Text(deudor.CantidadCuotas.ToString());
-                    table.Cell().Element(cellStyle).AlignRight().Text($"${deudor.TotalComprobante:N0}");
+                    table.Cell().Element(cellStyle).AlignRight().Text(FormatMonto(deudor.TotalComprobante));
                     table.Cell().Element(cellStyle).AlignRight().Text($"${deudor.Saldo:N0}").FontColor(deudor.Saldo > 0 ? Colors.Red.Medium : Colors.Green.Medium);
                     table.Cell().Element(cellStyle).AlignRight().Text($"${deudor.Anticipo:N0}");
 
@@ -128,7 +128,7 @@ namespace BookstoreAPI.Services.Pdf
                     {
                         var cuota = deudor.Cuotas.FirstOrDefault(c => c.Periodo == periodo);
                         var importePagado = cuota?.ImportePagado ?? 0;
-                        table.Cell().Element(cellStyle).AlignRight().Text($"${importePagado:N0}");
+                        table.Cell().Element(cellStyle).AlignRight().Text(FormatMonto(importePagado));
                     }
 
                     alternar = !alternar;
@@ -166,6 +166,11 @@ namespace BookstoreAPI.Services.Pdf
             if (periodo.Length == 7 && periodo[2] == '/')
                 return periodo.Substring(0, 3) + periodo.Substring(5, 2);
             return periodo;
+        }
+
+        private static string FormatMonto(decimal valor)
+        {
+            return valor == 0 ? "_______" : $"${valor:N0}";
         }
 
         private static string TruncateText(string text, int maxLength)

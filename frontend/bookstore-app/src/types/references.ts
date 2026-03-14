@@ -16,6 +16,7 @@ export interface UpdateZonaDto {
 export interface SubZona {
   id: number;
   descripcion?: string;
+  zonaId?: number;
   provinciaId: number;
   codigoPostal?: string;
   localidad?: string;
@@ -24,6 +25,7 @@ export interface SubZona {
 
 export interface CreateSubZonaDto {
   descripcion: string;
+  zonaId?: number;
   provinciaId: number;
   codigoPostal: string;
   localidad: string;
@@ -31,6 +33,7 @@ export interface CreateSubZonaDto {
 
 export interface UpdateSubZonaDto {
   descripcion: string;
+  zonaId?: number;
   provinciaId: number;
   codigoPostal: string;
   localidad: string;
