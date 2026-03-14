@@ -64,11 +64,20 @@ CREATE TABLE IF NOT EXISTS `comprobantes` (
   `Cuotas` int DEFAULT NULL,
   `ValorCuota` decimal(17,2) DEFAULT NULL,
   `vendedor_id` int DEFAULT NULL,
+  `ContraEntregaPagado` decimal(17,2) DEFAULT 0,
+  `GastosEnvio` decimal(17,2) DEFAULT NULL,
+  `EsElectronica` tinyint(1) NOT NULL DEFAULT 1,
+  `EsPresupuesto` tinyint(1) NOT NULL DEFAULT 0,
+  `comprobante_asociado_id` int DEFAULT NULL,
+  `estado` varchar(20) COLLATE utf8mb4_general_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `cliente_id` (`cliente_id`),
   KEY `FK_comprobantes_vendedores` (`vendedor_id`),
+  KEY `idx_comprobantes_tipo` (`EsElectronica`, `EsPresupuesto`),
+  KEY `idx_comprobante_asociado` (`comprobante_asociado_id`),
   CONSTRAINT `comprobantes_ibfk_1` FOREIGN KEY (`cliente_id`) REFERENCES `clientes` (`Id`),
-  CONSTRAINT `FK_comprobantes_vendedores` FOREIGN KEY (`vendedor_id`) REFERENCES `vendedores` (`id`)
+  CONSTRAINT `FK_comprobantes_vendedores` FOREIGN KEY (`vendedor_id`) REFERENCES `vendedores` (`id`),
+  CONSTRAINT `fk_comprobante_asociado` FOREIGN KEY (`comprobante_asociado_id`) REFERENCES `comprobantes` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE IF NOT EXISTS `comprobante_detalle` (
@@ -98,7 +107,7 @@ CREATE TABLE IF NOT EXISTS `cuotas` (
   `numero_cuota` int DEFAULT 1,
   `Fecha` datetime DEFAULT NULL,
   `Importe` decimal(17,2) DEFAULT NULL,
-  `ImportePagado` decimal(17,2) DEFAULT 0,
+  `importe_pagado` decimal(17,2) DEFAULT 0,
   `Estado` varchar(3) COLLATE utf8mb4_general_ci DEFAULT NULL,
   PRIMARY KEY (`Id`),
   KEY `FK__comprobantes` (`Comprobante_Id`) USING BTREE,
