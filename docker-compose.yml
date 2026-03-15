@@ -84,8 +84,10 @@ services:
       - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/entrypoint.sh:/entrypoint.sh:ro
       - certbot_webroot:/var/www/certbot:ro
-      - certbot_certs:/etc/letsencrypt:ro
+      - certbot_certs:/etc/letsencrypt
+    entrypoint: /entrypoint.sh
     depends_on:
       - frontend
       - backend
@@ -104,7 +106,12 @@ services:
     volumes:
       - certbot_webroot:/var/www/certbot
       - certbot_certs:/etc/letsencrypt
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+      - ./certbot/entrypoint.sh:/entrypoint.sh:ro
+    entrypoint: /entrypoint.sh
+    environment:
+      - CERTBOT_EMAIL=${CERTBOT_EMAIL:-admin@edicionesliber.com.ar}
+    depends_on:
+      - nginx
     networks:
       - bookstore-network
     restart: unless-stopped
