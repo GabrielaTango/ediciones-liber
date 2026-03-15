@@ -87,7 +87,7 @@ services:
       - ./nginx/entrypoint.sh:/entrypoint.sh:ro
       - certbot_webroot:/var/www/certbot:ro
       - certbot_certs:/etc/letsencrypt
-    entrypoint: /entrypoint.sh
+    entrypoint: ["sh", "/entrypoint.sh"]
     depends_on:
       - frontend
       - backend
@@ -107,7 +107,7 @@ services:
       - certbot_webroot:/var/www/certbot
       - certbot_certs:/etc/letsencrypt
       - ./certbot/entrypoint.sh:/entrypoint.sh:ro
-    entrypoint: /entrypoint.sh
+    entrypoint: ["sh", "/entrypoint.sh"]
     environment:
       - CERTBOT_EMAIL=${CERTBOT_EMAIL:-admin@edicionesliber.com.ar}
     depends_on:
