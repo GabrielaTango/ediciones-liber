@@ -214,7 +214,7 @@ namespace BookstoreAPI.Services.Afip
 
         private string GenerateLoginTicketRequest(AfipConfig config)
         {
-            string xmlTemplate = $@"<loginTicketRequest><header><source>SERIALNUMBER=CUIT {config.CUIT}, CN=prueba2025</source><destination>CN=wsaahomo, O=AFIP, C=AR, SERIALNUMBER=CUIT 33693450239</destination><uniqueId></uniqueId><generationTime></generationTime><expirationTime></expirationTime></header><service></service></loginTicketRequest>";
+            string xmlTemplate = $@"<loginTicketRequest><header>    `<uniqueId></uniqueId><generationTime></generationTime><expirationTime></expirationTime></header><service></service></loginTicketRequest>";
 
             XmlDocument xmlDoc = new XmlDocument();
             xmlDoc.LoadXml(xmlTemplate);

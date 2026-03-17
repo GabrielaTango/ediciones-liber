@@ -1,0 +1,13 @@
+<loginTicketResponse version="1.0">
+    <header>
+        <source>CN=wsaa, O=AFIP, C=AR, SERIALNUMBER=CUIT 33693450239</source>
+        <destination>SERIALNUMBER=CUIT 30714178888, CN=liber</destination>
+        <uniqueId>343591872</uniqueId>
+        <generationTime>2026-03-16T21:21:14.838-03:00</generationTime>
+        <expirationTime>2026-03-17T09:21:14.838-03:00</expirationTime>
+    </header>
+    <credentials>
+        <token>PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9InllcyI/Pgo8c3NvIHZlcnNpb249IjIuMCI+CiAgICA8aWQgc3JjPSJDTj13c2FhLCBPPUFGSVAsIEM9QVIsIFNFUklBTE5VTUJFUj1DVUlUIDMzNjkzNDUwMjM5IiBkc3Q9IkNOPXdzZmUsIE89QUZJUCwgQz1BUiIgdW5pcXVlX2lkPSIyMDg0NjY2ODQ0IiBnZW5fdGltZT0iMTc3MzcwNjgxNCIgZXhwX3RpbWU9IjE3NzM3NTAwNzQiLz4KICAgIDxvcGVyYXRpb24gdHlwZT0ibG9naW4iIHZhbHVlPSJncmFudGVkIj4KICAgICAgICA8bG9naW4gZW50aXR5PSIzMzY5MzQ1MDIzOSIgc2VydmljZT0id3NmZSIgdWlkPSJTRVJJQUxOVU1CRVI9Q1VJVCAzMDcxNDE3ODg4OCwgQ049bGliZXIiIGF1dGhtZXRob2Q9ImNtcyIgcmVnbWV0aG9kPSIyMiI+CiAgICAgICAgICAgIDxyZWxhdGlvbnM+CiAgICAgICAgICAgICAgICA8cmVsYXRpb24ga2V5PSIzMDcxNDE3ODg4OCIgcmVsdHlwZT0iNCIvPgogICAgICAgICAgICA8L3JlbGF0aW9ucz4KICAgICAgICA8L2xvZ2luPgogICAgPC9vcGVyYXRpb24+Cjwvc3NvPgo=</token>
+        <sign>Y4duraayJr2XT2P8i1d+rdum6HpxXqTqKWteN61Am53tRtqUsz/h/6TxZBT54knuhy/JyqY183gt7LB3nOhz6ODmnOt26IWc+2qf0jypG8qXixic/xmZdOEDTLJlv7QSsHCNJ9g9++M7Oi8IM/fbh23B3x6v7c3NZ4Lbb6fW/Zc=</sign>
+    </credentials>
+</loginTicketResponse>
