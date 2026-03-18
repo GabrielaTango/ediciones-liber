@@ -4,8 +4,8 @@
 
 set -e
 
-DOMAINS="edicionesliber.com www.edicionesliber.com.ar"
-EMAIL="admin@edicionesliber.com"  # Cambiar al email real
+DOMAINS="edicionesliber.com.ar www.edicionesliber.com.ar"
+EMAIL="admin@edicionesliber.com.ar"  # Cambiar al email real
 STAGING_ARG=""
 
 if [ "$1" = "--staging" ]; then
@@ -19,7 +19,7 @@ echo ">>> Levantando nginx sin SSL para el challenge..."
 cat > nginx/conf.d/default.conf <<'NGINX_CONF'
 server {
     listen 80;
-    server_name www.edicionesliber.com.ar edicionesliber.com;
+    server_name www.edicionesliber.com.ar edicionesliber.com.ar;
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
@@ -53,7 +53,7 @@ docker compose run --rm certbot certonly \
     --agree-tos \
     --no-eff-email \
     $STAGING_ARG \
-    -d edicionesliber.com \
+    -d edicionesliber.com.ar \
     -d www.edicionesliber.com.ar
 
 echo ">>> Restaurando config nginx con SSL..."
@@ -61,7 +61,7 @@ echo ">>> Restaurando config nginx con SSL..."
 cat > nginx/conf.d/default.conf <<'NGINX_CONF'
 server {
     listen 80;
-    server_name www.edicionesliber.com.ar edicionesliber.com;
+    server_name www.edicionesliber.com.ar edicionesliber.com.ar;
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
@@ -74,10 +74,10 @@ server {
 
 server {
     listen 443 ssl;
-    server_name www.edicionesliber.com.ar edicionesliber.com;
+    server_name www.edicionesliber.com.ar edicionesliber.com.ar;
 
-    ssl_certificate /etc/letsencrypt/live/edicionesliber.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/edicionesliber.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/edicionesliber.com.ar/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/edicionesliber.com.ar/privkey.pem;
 
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
