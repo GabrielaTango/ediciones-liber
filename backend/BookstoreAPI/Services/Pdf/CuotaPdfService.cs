@@ -76,6 +76,9 @@ namespace BookstoreAPI.Services.Pdf
 
         private void ComposeHeader(IContainer container, Cliente cliente, Comprobante comprobante, List<Cuota> cuotas)
         {
+
+            var fontSize = 11;
+
             container.Column(column =>
             {
                 column.Item().Border(1).Padding(10).Row(row =>
@@ -85,20 +88,20 @@ namespace BookstoreAPI.Services.Pdf
                     {
                         c.Item().Text(text =>
                         {
-                            text.Span($"Cliente: {cliente.Nombre} - {cliente.Id}").Bold();
+                            text.Span($"Cliente: {cliente.Nombre} - {cliente.Id}").FontSize(fontSize).Bold();
                         });
-                        c.Item().Text($"Domicilio Com: {cliente.DomicilioComercial ?? "-"}").FontSize(10);
-                        c.Item().Text($"Dirección Part: {cliente.DomicilioParticular ?? "-"}").FontSize(10);
-                        c.Item().Text($"Teléfono: {cliente.Telefono ?? cliente.TelefonoMovil ?? "-"}").FontSize(10);
+                        c.Item().Text($"Domicilio Com: {cliente.DomicilioComercial ?? "-"}").FontSize(fontSize);
+                        c.Item().Text($"Dirección Part: {cliente.DomicilioParticular ?? "-"}").FontSize(fontSize);
+                        c.Item().Text($"Teléfono: {cliente.Telefono ?? cliente.TelefonoMovil ?? "-"}").FontSize(fontSize);
                     });
 
                     // Columna derecha - Datos del comprobante
                     row.RelativeItem().AlignRight().Column(c =>
                     {
-                        c.Item().Text($"Email: {cliente.EMail ?? "-"}").FontSize(10);
-                        c.Item().Text($"Documento: {cliente.NroDocumento ?? "-"}").FontSize(10);
-                        c.Item().Text($"Factura: {comprobante.NumeroComprobante}").FontSize(10);
-                        c.Item().Text($"Fecha: {comprobante.Fecha:dd/MM/yyyy}").FontSize(10);
+                        c.Item().Text($"Email: {cliente.EMail ?? "-"}").FontSize(fontSize);
+                        c.Item().Text($"Documento: {cliente.NroDocumento ?? "-"}").FontSize(fontSize);
+                        c.Item().Text($"Factura: {comprobante.NumeroComprobante}").FontSize(fontSize);
+                        c.Item().Text($"Fecha: {comprobante.Fecha:dd/MM/yyyy}").FontSize(fontSize);
                     });
                 });
 

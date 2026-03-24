@@ -122,6 +122,8 @@ namespace BookstoreAPI.Services.Pdf
                         c.Item().Text($"Nombre: {cliente.Nombre}");
                         c.Item().Text($"Documento: {cliente.NroDocumento ?? "-"}");
                         c.Item().Text($"Dirección: {FormatDireccionCompleta(cliente)}");
+                        if (!string.IsNullOrEmpty(cliente.DomicilioParticular))
+                            c.Item().Text($"Dir. Particular: {FormatDireccionParticular(cliente)}");
                         c.Item().Text($"Email: {cliente.EMail ?? "-"}");
                     });
 
@@ -303,6 +305,22 @@ namespace BookstoreAPI.Services.Pdf
             var domicilio = cliente.DomicilioComercial ?? cliente.DomicilioParticular;
             if (!string.IsNullOrEmpty(domicilio))
                 partes.Add(domicilio);
+            if (!string.IsNullOrEmpty(cliente.CodigoPostal))
+                partes.Add(cliente.CodigoPostal);
+            if (!string.IsNullOrEmpty(cliente.Localidad))
+                partes.Add(cliente.Localidad);
+            if (!string.IsNullOrEmpty(cliente.ProvinciaDescripcion))
+                partes.Add(cliente.ProvinciaDescripcion);
+
+            return partes.Count > 0 ? string.Join(" - ", partes) : "-";
+        }
+
+        private string FormatDireccionParticular(Cliente cliente)
+        {
+            var partes = new List<string>();
+
+            if (!string.IsNullOrEmpty(cliente.DomicilioParticular))
+                partes.Add(cliente.DomicilioParticular);
             if (!string.IsNullOrEmpty(cliente.CodigoPostal))
                 partes.Add(cliente.CodigoPostal);
             if (!string.IsNullOrEmpty(cliente.Localidad))
