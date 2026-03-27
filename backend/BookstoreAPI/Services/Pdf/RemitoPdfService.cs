@@ -8,8 +8,7 @@ namespace BookstoreAPI.Services.Pdf
     public class RemitoPdfService : IRemitoPdfService
     {
         private readonly ILogger<RemitoPdfService> _logger;
-        private static readonly byte[] _logoBytes = File.ReadAllBytes(
-            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Images", "LiberLogo.png"));
+        private const string LogoPath = "./Images/LiberLogo.png";
 
         public RemitoPdfService(ILogger<RemitoPdfService> logger)
         {
@@ -55,7 +54,7 @@ namespace BookstoreAPI.Services.Pdf
                     // Columna izquierda - Datos de la empresa
                     row.RelativeItem(6).Column(leftCol =>
                     {
-                        leftCol.Item().Width(180).Image(_logoBytes);
+                        leftCol.Item().Width(180).Image(LogoPath);
                         leftCol.Item().PaddingTop(3).Text("de Roberto José Passarelli y Marcos E. Passarelli S.H.").FontSize(8);
                         leftCol.Item().PaddingTop(5).Text("Av. Asamblea 1442 P. 7 Dto. 20 - C.P.: C1406HVR - CABA").FontSize(8);
                         leftCol.Item().Text("Cel: 011 55012902 Marcos").FontSize(8);
@@ -288,7 +287,7 @@ namespace BookstoreAPI.Services.Pdf
                     headerRow.RelativeItem(6).Column(envioCol =>
                     {
                         envioCol.Item().Text("Envío de:").Bold().FontSize(10);
-                        envioCol.Item().PaddingTop(3).Width(120).Image(_logoBytes);
+                        envioCol.Item().PaddingTop(3).Width(120).Image(LogoPath);
                         envioCol.Item().Text("de Roberto José Passarelli y Marcos E. Passarelli S.H.").FontSize(7);
                         envioCol.Item().Text("Av. Asamblea 1442 P. 7 Dto. 20 - C.P.: C1406HVR - CABA").FontSize(7);
                         envioCol.Item().Text("I.V.A. EXENTO").FontSize(7);
