@@ -90,15 +90,15 @@ namespace BookstoreAPI.Services.Pdf
                         {
                             text.Span($"Cliente: {cliente.Nombre} - {cliente.Id}").FontSize(fontSize).Bold();
                         });
-                        c.Item().Text($"Domicilio Com: {cliente.DomicilioComercial ?? "-"}").FontSize(fontSize);
-                        c.Item().Text($"Dirección Part: {cliente.DomicilioParticular ?? "-"}").FontSize(fontSize);
+                        c.Item().Text($"Domicilio Com: {FormatDireccion(cliente.DomicilioComercial, cliente.Localidad, cliente.CodigoPostal)}").FontSize(fontSize);
+                        c.Item().Text($"Dirección Part: {FormatDireccion(cliente.DomicilioParticular, cliente.Localidad, cliente.CodigoPostal)}").FontSize(fontSize);
                         c.Item().Text($"Teléfono: {cliente.Telefono ?? cliente.TelefonoMovil ?? "-"}").FontSize(fontSize);
                     });
 
                     // Columna derecha - Datos del comprobante
                     row.RelativeItem().AlignRight().Column(c =>
                     {
-                        c.Item().Text($"Email: {cliente.EMail ?? "-"}").FontSize(fontSize);
+                        c.Item().Text($"Zona: {cliente.ZonaDescripcion ?? "-"}").FontSize(fontSize);
                         c.Item().Text($"Documento: {cliente.NroDocumento ?? "-"}").FontSize(fontSize);
                         c.Item().Text($"Factura: {comprobante.NumeroComprobante}").FontSize(fontSize);
                         c.Item().Text($"Fecha: {comprobante.Fecha:dd/MM/yyyy}").FontSize(fontSize);
@@ -176,6 +176,15 @@ namespace BookstoreAPI.Services.Pdf
                     c.Item().AlignRight().PaddingTop(3).Text($"Factura: {comprobante.NumeroComprobante}").FontSize(7);
                 });
             });
+        }
+
+        private static string FormatDireccion(string? domicilio, string? localidad, string? codigoPostal)
+        {
+            if (string.IsNullOrWhiteSpace(domicilio)) return "-";
+            var partes = new List<string> { domicilio };
+            if (!string.IsNullOrWhiteSpace(localidad)) partes.Add(localidad);
+            if (!string.IsNullOrWhiteSpace(codigoPostal)) partes.Add($"CP {codigoPostal}");
+            return string.Join(", ", partes);
         }
 
         private static string TruncateText(string text, int maxLength)
