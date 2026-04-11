@@ -26,6 +26,7 @@ namespace BookstoreAPI.DTOs
     {
         public int Mes { get; set; }
         public int Anio { get; set; }
+        public string ZonaNombre { get; set; } = string.Empty;
         public List<string> PeriodosCuotas { get; set; } = new(); // Lista de periodos únicos para columnas
         public List<DeudorItemDto> Deudores { get; set; } = new();
     }

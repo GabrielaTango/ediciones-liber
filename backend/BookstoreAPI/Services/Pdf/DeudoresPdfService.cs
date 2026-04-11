@@ -23,7 +23,7 @@ namespace BookstoreAPI.Services.Pdf
                     page.Margin(20);
                     page.DefaultTextStyle(x => x.FontSize(9));
 
-                    page.Header().Element(GenerarHeader(periodoTexto));
+                    page.Header().Element(GenerarHeader(periodoTexto, reporte.ZonaNombre));
                     page.Content().Element(GenerarDetalle(reporte));
                 });
             });
@@ -31,7 +31,7 @@ namespace BookstoreAPI.Services.Pdf
             return document.GeneratePdf();
         }
 
-        private Action<IContainer> GenerarHeader(string periodoTexto) => container =>
+        private Action<IContainer> GenerarHeader(string periodoTexto, string zonaNombre) => container =>
         {
             container.Column(column =>
             {
@@ -51,10 +51,11 @@ namespace BookstoreAPI.Services.Pdf
                             c.Item().Text($"Período: {periodoTexto}").FontSize(10);
                         });
 
-                    row.ConstantItem(100).Padding(2)
+                    row.ConstantItem(130).Padding(2)
                         .AlignRight()
                         .Column(c =>
                         {
+                            c.Item().Text(zonaNombre).FontSize(12).Bold();
                             c.Item().Text($"Fecha: {DateTime.Now:dd/MM/yyyy}").FontSize(9);
                             c.Item().Text(text =>
                             {
@@ -180,9 +181,9 @@ namespace BookstoreAPI.Services.Pdf
         }
 
         private static IContainer CellStyleBody(IContainer container) =>
-            container.Padding(2).DefaultTextStyle(x => x.FontSize(8));
+            container.Padding(2).AlignBottom().DefaultTextStyle(x => x.FontSize(8));
 
         private static IContainer CellStyleBodyAlt(IContainer container) =>
-            container.Padding(2).Background(Colors.Grey.Lighten4).DefaultTextStyle(x => x.FontSize(8));
+            container.Padding(2).AlignBottom().Background(Colors.Grey.Lighten4).DefaultTextStyle(x => x.FontSize(8));
     }
 }

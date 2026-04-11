@@ -40,6 +40,7 @@ namespace BookstoreAPI.Services.Pdf
                     // Comprobante por triplicado (3 páginas)
                     for (int copia = 1; copia <= 3; copia++)
                     {
+                        var copiaActual = copia;
                         var esPrimeraHoja = copia == 1;
                         container.Page(page =>
                         {
@@ -47,7 +48,7 @@ namespace BookstoreAPI.Services.Pdf
                             page.Margin(2, Unit.Centimetre);
                             page.DefaultTextStyle(x => x.FontSize(10));
 
-                            page.Header().Element(h => ComposeHeader(h, comprobante, cliente));
+                            page.Header().Element(h => ComposeHeader(h, comprobante, cliente, copiaActual));
                             page.Content().Element(c => ComposeContent(c, comprobante, cliente, detalles));
                             page.Footer().Element(f => ComposeFooter(f, comprobante, cliente, detalles, esPrimeraHoja));
                         });
@@ -63,11 +64,23 @@ namespace BookstoreAPI.Services.Pdf
             }
         }
 
-        private void ComposeHeader(IContainer container, Comprobante comprobante, Cliente cliente)
+        private static string ObtenerNombreCopia(int copia)
+        {
+            return copia switch
+            {
+                1 => "ORIGINAL",
+                2 => "DUPLICADO",
+                3 => "TRIPLICADO",
+                _ => ""
+            };
+        }
+
+        private void ComposeHeader(IContainer container, Comprobante comprobante, Cliente cliente, int copia = 1)
         {
             var tipoTexto = ObtenerTipoComprobanteCompleto(comprobante.TipoComprobante);
             var letraComprobante = ObtenerLetraComprobante(comprobante.TipoComprobante);
             var esPresupuesto = comprobante.TipoComprobante == "PRE" || comprobante.EsPresupuesto;
+            var nombreCopia = ObtenerNombreCopia(copia);
 
             container.Column(col =>
             {
@@ -90,6 +103,7 @@ namespace BookstoreAPI.Services.Pdf
                         row.RelativeItem().Border(1).PaddingLeft(40).PaddingTop(10).PaddingRight(10).PaddingBottom(10).Column(column =>
                         {
                             column.Item().Text(tipoTexto.ToUpper()).FontSize(12).Bold();
+                            column.Item().Text(nombreCopia).FontSize(8);
                             column.Item().PaddingTop(5).Text($"Número: {comprobante.NumeroComprobante}");
                             column.Item().Text($"Fecha: {comprobante.Fecha:dd/MM/yyyy}");
                             column.Item().PaddingTop(5).Text($"CUIT: {_cuit}").FontSize(8);
@@ -353,6 +367,7 @@ namespace BookstoreAPI.Services.Pdf
                     // ===== COMPROBANTE POR TRIPLICADO (3 páginas) =====
                     for (int copia = 1; copia <= 3; copia++)
                     {
+                        var copiaActual = copia;
                         var esPrimeraHoja = copia == 1;
                         container.Page(page =>
                         {
@@ -360,7 +375,7 @@ namespace BookstoreAPI.Services.Pdf
                             page.Margin(2, Unit.Centimetre);
                             page.DefaultTextStyle(x => x.FontSize(10));
 
-                            page.Header().Element(h => ComposeHeader(h, comprobante, cliente));
+                            page.Header().Element(h => ComposeHeader(h, comprobante, cliente, copiaActual));
                             page.Content().Element(c => ComposeContent(c, comprobante, cliente, detalles));
                             page.Footer().Element(f => ComposeFooter(f, comprobante, cliente, detalles, esPrimeraHoja));
                         });
@@ -402,6 +417,7 @@ namespace BookstoreAPI.Services.Pdf
                     {
                         for (int copia = 1; copia <= 3; copia++)
                         {
+                            var copiaActual = copia;
                             var esPrimeraHoja = copia == 1;
                             container.Page(page =>
                             {
@@ -409,7 +425,7 @@ namespace BookstoreAPI.Services.Pdf
                                 page.Margin(2, Unit.Centimetre);
                                 page.DefaultTextStyle(x => x.FontSize(10));
 
-                                page.Header().Element(h => ComposeHeader(h, item.comprobante, item.cliente));
+                                page.Header().Element(h => ComposeHeader(h, item.comprobante, item.cliente, copiaActual));
                                 page.Content().Element(c => ComposeContent(c, item.comprobante, item.cliente, item.detalles));
                                 page.Footer().Element(f => ComposeFooter(f, item.comprobante, item.cliente, item.detalles, esPrimeraHoja));
                             });

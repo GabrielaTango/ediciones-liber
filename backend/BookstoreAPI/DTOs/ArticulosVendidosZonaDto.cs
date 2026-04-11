@@ -7,6 +7,7 @@ namespace BookstoreAPI.DTOs
         public string RazonSocial { get; set; } = string.Empty;
         public string Direccion { get; set; } = string.Empty;
         public string DireccionComercial { get; set; } = string.Empty;
+        public string Telefono { get; set; } = string.Empty;
         public string DescripcionArticulo { get; set; } = string.Empty;
         public DateTime FechaFactura { get; set; }
         public string NumeroFactura { get; set; } = string.Empty;

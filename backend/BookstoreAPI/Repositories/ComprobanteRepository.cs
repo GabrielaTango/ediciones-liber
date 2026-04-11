@@ -618,10 +618,19 @@ namespace BookstoreAPI.Repositories
             var cuotasData = await connection.QueryAsync<dynamic>(cuotasQuery, queryParams);
             var pagosData = await connection.QueryAsync<dynamic>(pagosQuery, queryParams);
 
+            // Obtener nombre de la zona
+            var zonaNombre = "Todas las zonas";
+            if (zonaId.HasValue)
+            {
+                var zonaQuery = "SELECT descripcion FROM zonas WHERE id = @ZonaId";
+                zonaNombre = await connection.QueryFirstOrDefaultAsync<string>(zonaQuery, new { ZonaId = zonaId }) ?? "Zona desconocida";
+            }
+
             var resultado = new DeudoresReporteDto
             {
                 Mes = mes,
                 Anio = anio,
+                ZonaNombre = zonaNombre,
                 PeriodosCuotas = new List<string>(),
                 Deudores = new List<DeudorItemDto>()
             };
@@ -799,6 +808,7 @@ namespace BookstoreAPI.Repositories
                     cl.Nombre AS RazonSocial,
                     COALESCE(cl.DomicilioParticular, '') AS Direccion,
                     COALESCE(cl.DomicilioComercial, '') AS DireccionComercial,
+                    COALESCE(cl.Telefono, '') AS Telefono,
                     COALESCE(a.Descripcion, '') AS DescripcionArticulo,
                     c.fecha AS FechaFactura,
                     COALESCE(c.numeroComprobante, '') AS NumeroFactura

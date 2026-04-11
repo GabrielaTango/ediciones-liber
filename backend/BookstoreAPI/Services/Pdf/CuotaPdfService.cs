@@ -173,7 +173,7 @@ namespace BookstoreAPI.Services.Pdf
                     c.Item().AlignRight().Text($"${cuota.Importe:N2}").FontSize(10).Bold();
 
                     // Información adicional
-                    c.Item().AlignRight().PaddingTop(3).Text($"Factura: {comprobante.NumeroComprobante}").FontSize(7);
+                    c.Item().AlignRight().PaddingTop(3).Text($"Factura: {comprobante.NumeroComprobante}").FontSize(9);
                 });
             });
         }

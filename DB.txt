@@ -1,0 +1,1 @@
+server=db;database=BookstoreApp;user=bookstore;password=B00kSt0res2026!Lib;

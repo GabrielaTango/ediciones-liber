@@ -47,13 +47,14 @@ namespace BookstoreAPI.Services.Pdf
                             c.Item().Text("de Roberto Passarelli y Marcos E. Passarelli S.H").FontSize(10).Bold();
                             c.Item().Text("Av. Asamblea 1442 P 7 Dto 20 - CP: C1406HVR - C.A.B.A.").FontSize(8);
                             c.Item().Text($"C.U.I.T. 30-71417888-8    CLIENTES X ZONA").FontSize(10);
-                            c.Item().Text($"Zona: {zonaNombre} - Período: Últimos 3 años").FontSize(10);
+                            c.Item().Text($"Período: Últimos 3 años").FontSize(10);
                         });
 
-                    row.ConstantItem(100).Padding(2)
+                    row.ConstantItem(130).Padding(2)
                         .AlignRight()
                         .Column(c =>
                         {
+                            c.Item().Text(zonaNombre).FontSize(12).Bold();
                             c.Item().Text($"Fecha: {DateTime.Now:dd/MM/yyyy}").FontSize(9);
                             c.Item().Text(text =>
                             {
@@ -118,11 +119,19 @@ namespace BookstoreAPI.Services.Pdf
 
                     // Solo mostrar vendedor, código, razón social y direcciones en el primer registro del cliente
                     table.Cell().Element(cellStyle).Text(esPrimerRegistroCliente ? item.VendedorInicial : "");
-                    table.Cell().Element(cellStyle).Text(esPrimerRegistroCliente ? TruncateText(item.RazonSocial, 35) : "");
+                    table.Cell().Element(cellStyle).Column(c =>
+                    {
+                        if (esPrimerRegistroCliente)
+                        {
+                            c.Item().Text(TruncateText(item.RazonSocial, 35)).FontSize(8);
+                            if (!string.IsNullOrWhiteSpace(item.Telefono))
+                                c.Item().Text($"Tel: {item.Telefono}").FontSize(7);
+                        }
+                    });
                     table.Cell().Element(cellStyle).Text(esPrimerRegistroCliente ? TruncateText(item.Direccion, 30) : "");
                     table.Cell().Element(cellStyle).Text(esPrimerRegistroCliente ? TruncateText(item.DireccionComercial, 30) : "");
                     table.Cell().Element(cellStyle).Text(TruncateText(item.DescripcionArticulo, 40));
-                    table.Cell().Element(cellStyle).Text($"{item.FechaFactura:dd/MM/yyyy}");
+                    table.Cell().Element(cellStyle).Text($"{item.FechaFactura:dd/MM/yy}");
                     table.Cell().Element(cellStyle).Text(item.NumeroFactura);
                 }
 
