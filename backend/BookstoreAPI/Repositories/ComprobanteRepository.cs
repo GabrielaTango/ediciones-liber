@@ -545,7 +545,7 @@ namespace BookstoreAPI.Repositories
                 comprobantesQuery += " AND v.id = @VendedorId";
             }
 
-            comprobantesQuery += " ORDER BY c.fecha, c.numeroComprobante";
+            comprobantesQuery += " ORDER BY CASE c.tipoComprobante WHEN 'PRE' THEN 0 ELSE 1 END, c.numeroComprobante ASC";
 
             // Query para obtener todas las cuotas (incluyendo cuota 0 = contraentrega)
             // Excluye cuotas de comprobantes cancelados

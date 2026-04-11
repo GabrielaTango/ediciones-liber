@@ -36,6 +36,12 @@ Thumbs.db
 # Claude
 CLAUDE.md
 
+# Sensitive config
+appsettings.json
+
+# AFIP token
+ta.xml
+
 # Certificates (sensitive)
 arca-certificado/
 arca2/

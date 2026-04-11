@@ -122,7 +122,7 @@ namespace BookstoreAPI.Repositories
                 query += " AND cl.Id = @ClienteId";
             }
 
-            query += " ORDER BY ClienteNombre, c.numeroComprobante, cu.numero_cuota, cu.id";
+            query += " ORDER BY CASE c.tipoComprobante WHEN 'PRE' THEN 0 ELSE 1 END, c.numeroComprobante ASC, cu.numero_cuota, cu.id";
 
             using var connection = _context.CreateConnection();
             var cuotas = (await connection.QueryAsync<CuotaListadoDto>(query, new { ZonaId = zonaId, FechaCorte = fechaCorte, VendedorId = vendedorId, Comprobante = $"%{comprobante}%", ClienteId = clienteId })).ToList();
