@@ -130,7 +130,9 @@ const CuotasPage = () => {
       group.saldo += cuota.importe - cuota.importePagado;
       group.cuotas.push(cuota);
     }
-    return Array.from(map.values()).sort((a, b) => a.clienteNombre.localeCompare(b.clienteNombre));
+    return Array.from(map.values()).sort((a, b) =>
+      a.numeroComprobante.localeCompare(b.numeroComprobante, undefined, { numeric: true })
+    );
   }, [cuotasFiltradas]);
 
   // Saltar al siguiente comprobante con saldo después de pagar

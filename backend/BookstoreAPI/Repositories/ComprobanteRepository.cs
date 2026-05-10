@@ -315,27 +315,27 @@ namespace BookstoreAPI.Repositories
             var cuotas = new List<Cuota>();
             var fechaBase = comprobante.Fecha;
 
-            // Cuota 0: Contraentrega (si existe)
+            // Cuota 0: Contraentrega (si existe) — vence a 1 mes de la factura
             if (comprobante.ContraEntrega.HasValue && comprobante.ContraEntrega.Value > 0)
             {
                 cuotas.Add(new Cuota
                 {
                     Comprobante_Id = comprobante.Id,
                     NumeroCuota = 0,
-                    Fecha = fechaBase, // Misma fecha del comprobante
+                    Fecha = fechaBase.AddMonths(1),
                     Importe = comprobante.ContraEntrega.Value,
                     Estado = "PEN"
                 });
             }
 
-            // Cuotas 1 a N: Cuotas regulares
+            // Cuotas 1 a N: la 1ra vence a 2 meses, luego una por mes
             for (int i = 1; i <= comprobante.Cuotas; i++)
             {
                 var cuota = new Cuota
                 {
                     Comprobante_Id = comprobante.Id,
                     NumeroCuota = i,
-                    Fecha = fechaBase.AddMonths(i),
+                    Fecha = fechaBase.AddMonths(i + 1),
                     Importe = comprobante.ValorCuota,
                     Estado = "PEN"
                 };

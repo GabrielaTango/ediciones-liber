@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { articuloService } from '../services/articuloService';
 import type { Articulo } from '../types/articulo';
@@ -11,6 +11,17 @@ const ArticulosPage = () => {
   const [articulos, setArticulos] = useState<Articulo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+
+  const articulosFiltrados = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return articulos;
+    return articulos.filter((a) =>
+      [a.descripcion, a.codBarras, a.tema, a.tomos]
+        .filter((v) => v !== null && v !== undefined && v !== '')
+        .some((v) => String(v).toLowerCase().includes(term))
+    );
+  }, [articulos, search]);
 
   useEffect(() => {
     loadArticulos();
@@ -68,6 +79,35 @@ const ArticulosPage = () => {
       ) : (
         <div className="card">
           <div className="card-body">
+            <div className="row mb-3">
+              <div className="col-md-6">
+                <div className="input-group">
+                  <i className="fa-solid fa-magnifying-glass"></i>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Buscar por descripción, código de barras, editorial..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    style={{ borderTopLeftRadius: 'var(--radius-md)', borderBottomLeftRadius: 'var(--radius-md)' }}
+                  />
+                  {search && (
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => setSearch('')}
+                      title="Limpiar"
+                      style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', zIndex: 5, border: 'none', background: 'transparent' }}
+                    >
+                      <i className="fa-solid fa-xmark"></i>
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="col-md-6 d-flex align-items-center justify-content-md-end text-muted small">
+                Mostrando {articulosFiltrados.length} de {articulos.length}
+              </div>
+            </div>
             <div className="table-responsive">
               <table className="custom-table">
                 <thead>
@@ -81,7 +121,14 @@ const ArticulosPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {articulos.map((articulo) => (
+                  {articulosFiltrados.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-4 text-muted">
+                        No se encontraron artículos
+                      </td>
+                    </tr>
+                  ) : (
+                  articulosFiltrados.map((articulo) => (
                     <tr key={articulo.id}>
                       <td>{articulo.descripcion || '-'}</td>
                       <td>{articulo.codBarras || '-'}</td>
@@ -104,7 +151,8 @@ const ArticulosPage = () => {
                         />
                       </td>
                     </tr>
-                  ))}
+                  ))
+                  )}
                 </tbody>
               </table>
             </div>

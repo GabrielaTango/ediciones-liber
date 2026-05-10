@@ -98,9 +98,9 @@ namespace BookstoreAPI.Services.Pdf
                     // Columna derecha - Datos del comprobante
                     row.RelativeItem().AlignRight().Column(c =>
                     {
+                        c.Item().Text($"Factura: {comprobante.NumeroComprobante}").FontSize(fontSize);
                         c.Item().Text($"Zona: {cliente.ZonaDescripcion ?? "-"}").FontSize(fontSize);
                         c.Item().Text($"Documento: {cliente.NroDocumento ?? "-"}").FontSize(fontSize);
-                        c.Item().Text($"Factura: {comprobante.NumeroComprobante}").FontSize(fontSize);
                         c.Item().Text($"Fecha: {comprobante.Fecha:dd/MM/yyyy}").FontSize(fontSize);
                     });
                 });

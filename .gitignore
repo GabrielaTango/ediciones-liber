@@ -47,3 +47,4 @@ arca-certificado/
 arca2/
 certificates/
 *.pfx
+docker-compose.test.yml
