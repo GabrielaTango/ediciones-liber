@@ -518,7 +518,7 @@ namespace BookstoreAPI.Repositories
                     c.id AS Id,
                     c.numeroComprobante AS NumeroComprobante,
                     cl.Nombre AS RazonSocial,
-                    v.codigo AS CodigoVendedor,
+                    UPPER(LEFT(COALESCE(v.descripcion, ''), 1)) AS CodigoVendedor,
                     COALESCE(c.Cuotas, 0) AS CantidadCuotas,
                     c.total AS TotalComprobante,
                     COALESCE(c.Anticipo, 0) AS Anticipo,
