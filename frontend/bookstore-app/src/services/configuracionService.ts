@@ -1,5 +1,5 @@
 import api from './api';
-import type { AfipConfigDto, AfipConfigUpdateDto, UltimoComprobanteDto } from '../types/configuracion';
+import type { AfipConfigDto, AfipConfigUpdateDto, CertificadoEstadoDto, UltimoComprobanteDto } from '../types/configuracion';
 
 export const configuracionService = {
   getAfipConfig: async (): Promise<AfipConfigDto> => {
@@ -9,6 +9,11 @@ export const configuracionService = {
 
   updateAfipConfig: async (data: AfipConfigUpdateDto): Promise<void> => {
     await api.put('/configuracion/afip', data);
+  },
+
+  getCertificadoEstado: async (): Promise<CertificadoEstadoDto> => {
+    const response = await api.get<CertificadoEstadoDto>('/configuracion/afip/certificado');
+    return response.data;
   },
 
   getUltimoComprobante: async (puntoVenta?: number): Promise<UltimoComprobanteDto[]> => {

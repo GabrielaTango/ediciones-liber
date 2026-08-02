@@ -12,6 +12,12 @@
   --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 
+  /* Semáforo del certificado AFIP (--warning-gradient del tema es rosado, no amarillo) */
+  --cert-ok-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  --cert-warn-gradient: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+  --cert-danger-gradient: linear-gradient(135deg, #cb2d3e 0%, #ef473a 100%);
+  --cert-muted-gradient: linear-gradient(135deg, #64748b 0%, #94a3b8 100%);
+
   /* Solid Colors (for non-gradient use cases) */
   --primary-color: #667eea;
   --success-color: #11998e;
@@ -1253,5 +1259,105 @@ body {
 
   .login-header h1 {
     font-size: 1.5rem;
+  }
+}
+
+/* ===== CERTIFICADO AFIP - PANEL DE ESTADO ===== */
+.cert-status-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.cert-status-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+}
+
+.cert-status-card.vigente::before { background: var(--cert-ok-gradient); }
+.cert-status-card.por_vencer::before { background: var(--cert-warn-gradient); }
+.cert-status-card.vencido::before { background: var(--cert-danger-gradient); }
+.cert-status-card.sin_certificado::before,
+.cert-status-card.error::before { background: var(--cert-muted-gradient); }
+
+.cert-status-icon {
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: white;
+}
+
+.cert-status-card.vigente .cert-status-icon { background: var(--cert-ok-gradient); }
+.cert-status-card.por_vencer .cert-status-icon { background: var(--cert-warn-gradient); }
+.cert-status-card.vencido .cert-status-icon { background: var(--cert-danger-gradient); }
+.cert-status-card.sin_certificado .cert-status-icon,
+.cert-status-card.error .cert-status-icon { background: var(--cert-muted-gradient); }
+
+.cert-status-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.cert-status-body h6 {
+  margin: 0 0 0.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.cert-status-body p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.cert-status-badge {
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cert-status-card.vigente .cert-status-badge {
+  background: rgba(17, 153, 142, 0.12);
+  color: #0f766e;
+}
+
+.cert-status-card.por_vencer .cert-status-badge {
+  background: rgba(217, 119, 6, 0.14);
+  color: #b45309;
+}
+
+.cert-status-card.vencido .cert-status-badge {
+  background: rgba(220, 38, 38, 0.12);
+  color: #dc2626;
+}
+
+.cert-status-card.sin_certificado .cert-status-badge,
+.cert-status-card.error .cert-status-badge {
+  background: rgba(100, 116, 139, 0.12);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 576px) {
+  .cert-status-card {
+    flex-wrap: wrap;
+    gap: 0.75rem;
   }
 }

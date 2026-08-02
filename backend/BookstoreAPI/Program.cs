@@ -84,6 +84,7 @@ builder.Services.AddScoped<IAfipConfigProvider, AfipConfigProvider>();
 builder.Services.AddScoped<IAfipAuthService, AfipAuthService>();
 builder.Services.AddScoped<IAfipFacturacionService, AfipFacturacionService>();
 builder.Services.AddScoped<IAfipQrService, AfipQrService>();
+builder.Services.AddScoped<IAfipCertificadoService, AfipCertificadoService>();
 
 // Registrar Services PDF
 builder.Services.AddScoped<IComprobantePdfService, ComprobantePdfService>();

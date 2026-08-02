@@ -24,6 +24,10 @@ interface ComprobanteGroup {
   cuotas: CuotaListado[];
 }
 
+// Mismo criterio de orden usado para armar el listado y para ubicar "el siguiente"
+const compareComprobante = (a: string, b: string) =>
+  a.localeCompare(b, undefined, { numeric: true });
+
 const CuotasPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +48,10 @@ const CuotasPage = () => {
   const [fechaPago, setFechaPago] = useState<string>('');
   const [savingComprobanteId, setSavingComprobanteId] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const pendingNextRef = useRef<number | null>(null); // comprobanteId del que se acaba de pagar, para saltar al siguiente
+  // Comprobante que se acaba de pagar, para saltar al siguiente.
+  // Se guarda también el numeroComprobante porque si el pago cancela el saldo
+  // la fila desaparece del listado y no se la puede ubicar por id.
+  const pendingNextRef = useRef<{ id: number; numeroComprobante: string } | null>(null);
 
   // Expandir filas
   const [expandedComprobantes, setExpandedComprobantes] = useState<Set<number>>(new Set());
@@ -130,26 +137,37 @@ const CuotasPage = () => {
       group.saldo += cuota.importe - cuota.importePagado;
       group.cuotas.push(cuota);
     }
-    return Array.from(map.values()).sort((a, b) =>
-      a.numeroComprobante.localeCompare(b.numeroComprobante, undefined, { numeric: true })
-    );
+    return Array.from(map.values()).sort((a, b) => compareComprobante(a.numeroComprobante, b.numeroComprobante));
   }, [cuotasFiltradas]);
 
   // Saltar al siguiente comprobante con saldo después de pagar
   useEffect(() => {
     if (pendingNextRef.current === null) return;
-    const paidId = pendingNextRef.current;
+    const paid = pendingNextRef.current;
     pendingNextRef.current = null;
 
-    const idx = comprobanteGroups.findIndex(g => g.comprobanteId === paidId);
-    for (let i = idx === -1 ? 0 : idx; i < comprobanteGroups.length; i++) {
-      const next = comprobanteGroups[i];
-      if (next.saldo > 0) {
-        setEditingComprobanteId(next.comprobanteId);
-        setEditValue(next.saldo.toFixed(2));
-        return;
+    // Si el comprobante pagado sigue en la lista (pago parcial) se arranca desde él,
+    // así queda posicionado en el mismo si todavía tiene saldo.
+    // Si desapareció (quedó saldado) se busca el primero que ordena después de él.
+    let startIdx = comprobanteGroups.findIndex(g => g.comprobanteId === paid.id);
+    if (startIdx === -1) {
+      startIdx = comprobanteGroups.findIndex(
+        g => compareComprobante(g.numeroComprobante, paid.numeroComprobante) > 0
+      );
+    }
+
+    if (startIdx !== -1) {
+      for (let i = startIdx; i < comprobanteGroups.length; i++) {
+        const next = comprobanteGroups[i];
+        if (next.saldo > 0) {
+          setEditingComprobanteId(next.comprobanteId);
+          setEditValue(next.saldo.toFixed(2));
+          return;
+        }
       }
     }
+
+    // No hay siguiente: se cierra la edición en lugar de volver al primero
     setEditingComprobanteId(null);
     setEditValue('');
   }, [comprobanteGroups]);
@@ -206,7 +224,7 @@ const CuotasPage = () => {
         setSavingComprobanteId(group.comprobanteId);
         setEditingComprobanteId(null);
         setEditValue('');
-        pendingNextRef.current = group.comprobanteId;
+        pendingNextRef.current = { id: group.comprobanteId, numeroComprobante: group.numeroComprobante };
         await cuotaService.createPagoComprobante(group.comprobanteId, {
           nroReferencia: 'PAGO',
           importe: valor,

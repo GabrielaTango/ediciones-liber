@@ -18,17 +18,20 @@ namespace BookstoreAPI.Controllers
     {
         private readonly IConfiguracionRepository _repo;
         private readonly IAfipFacturacionService _afipFacturacion;
+        private readonly IAfipCertificadoService _afipCertificado;
         private readonly ILogger<ConfiguracionController> _logger;
         private readonly IConfiguration _configuration;
 
         public ConfiguracionController(
             IConfiguracionRepository repo,
             IAfipFacturacionService afipFacturacion,
+            IAfipCertificadoService afipCertificado,
             ILogger<ConfiguracionController> logger,
             IConfiguration configuration)
         {
             _repo = repo;
             _afipFacturacion = afipFacturacion;
+            _afipCertificado = afipCertificado;
             _logger = logger;
             _configuration = configuration;
         }
@@ -99,6 +102,17 @@ namespace BookstoreAPI.Controllers
                 _logger.LogError(ex, "Error al guardar configuración AFIP");
                 return StatusCode(500, new { message = "Error al guardar configuración", error = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Estado del certificado AFIP (vigencia y días restantes). Siempre responde 200:
+        /// un problema con el certificado no debe romper el dashboard.
+        /// </summary>
+        [HttpGet("afip/certificado")]
+        public async Task<IActionResult> GetEstadoCertificado()
+        {
+            var estado = await _afipCertificado.GetEstadoAsync();
+            return Ok(estado);
         }
 
         [HttpGet("afip/diagnostico-cert")]

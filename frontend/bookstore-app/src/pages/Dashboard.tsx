@@ -9,7 +9,10 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { dashboardService } from '../services/dashboardService';
+import { configuracionService } from '../services/configuracionService';
 import type { DashboardStats, ActividadReciente } from '../types/dashboard';
+import type { CertificadoEstadoDto } from '../types/configuracion';
+import { CertificadoEstadoPanel } from '../components/CertificadoEstadoPanel';
 import { PageHeader } from '../components/PageHeader';
 import { StatCard } from '../components/StatCard';
 import { GradientCard } from '../components/GradientCard';
@@ -24,6 +27,7 @@ const Dashboard = () => {
     ventasHoy: 0
   });
   const [actividades, setActividades] = useState<ActividadReciente[]>([]);
+  const [certificado, setCertificado] = useState<CertificadoEstadoDto | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,12 +37,15 @@ const Dashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [statsData, actividadesData] = await Promise.all([
+      const [statsData, actividadesData, certificadoData] = await Promise.all([
         dashboardService.getStats(),
-        dashboardService.getActividadesRecientes(5)
+        dashboardService.getActividadesRecientes(5),
+        // Un fallo leyendo el certificado no debe tumbar el resto del dashboard
+        configuracionService.getCertificadoEstado().catch(() => null)
       ]);
       setStats(statsData);
       setActividades(actividadesData);
+      setCertificado(certificadoData);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       Swal.fire({
@@ -80,6 +87,9 @@ const Dashboard = () => {
 
         subtitle="Bienvenido de nuevo, aquí está tu resumen del día"
       />
+
+      {/* Estado del certificado AFIP */}
+      <CertificadoEstadoPanel estado={certificado} loading={loading} />
 
       {/* Stats Cards */}
       <div className="row g-4 mb-4">
